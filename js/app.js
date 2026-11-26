@@ -191,54 +191,77 @@
         xfbml: false,
         version: 'v21.0',
       });
-      FB.getLoginStatus(function (response) {
-        if (response.status === 'connected') {
-          onFbLoginSuccess(response.authResponse);
-        }
-      });
     };
+    handleFbRedirect();
+  }
+
+  function handleFbRedirect() {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      if (accessToken) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        sessionStorage.setItem('fb_access_token', accessToken);
+        waitForLogin(function () { onFbTokenObtained(accessToken); });
+      }
+    } else {
+      const saved = sessionStorage.getItem('fb_access_token');
+      if (saved) {
+        waitForLogin(function () { onFbTokenObtained(saved); });
+      }
+    }
+  }
+
+  function waitForLogin(callback) {
+    if ($('#app').style.display !== 'none') { callback(); return; }
+    const observer = new MutationObserver(function () {
+      if ($('#app').style.display !== 'none') { observer.disconnect(); callback(); }
+    });
+    observer.observe($('#app'), { attributes: true, attributeFilter: ['style'] });
   }
 
   function bindFbLogin() {
     const btn = $('#btnFbLogin');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      if (typeof FB === 'undefined') {
-        showToast('Facebook SDK 載入中，請稍後再試。', 'warning');
-        return;
-      }
-      FB.login(function (response) {
-        if (response.authResponse) {
-          onFbLoginSuccess(response.authResponse);
-        } else {
-          showToast('Facebook 登入已取消。', 'warning');
-        }
-      }, {
-        scope: 'pages_show_list,pages_read_engagement,pages_read_user_content',
-      });
+      const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+      const scope = 'pages_show_list,pages_read_engagement,pages_read_user_content';
+      const authUrl = 'https://www.facebook.com/v21.0/dialog/oauth?' +
+        'client_id=' + FB_APP_ID +
+        '&redirect_uri=' + redirectUri +
+        '&scope=' + scope +
+        '&response_type=token';
+      window.location.href = authUrl;
     });
   }
 
-  function onFbLoginSuccess(authResponse) {
-    const userToken = authResponse.accessToken;
+  function onFbTokenObtained(accessToken) {
     const statusEl = $('#fbStatus');
-
-    FB.api('/me', { fields: 'name' }, function (me) {
+    if (typeof FB !== 'undefined') {
+      FB.api('/me', { fields: 'name', access_token: accessToken }, function (me) {
+        if (me && !me.error && statusEl) {
+          statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
+          statusEl.classList.add('fb-connected');
+        }
+      });
+      FB.api('/me/accounts', { fields: 'name,access_token,id', access_token: accessToken }, function (resp) {
+        if (resp.data && resp.data.length > 0) {
+          state.fbPages = resp.data;
+          showPagePicker(resp.data);
+        } else {
+          $('#accessToken').value = accessToken;
+          showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
+        }
+      });
+    } else {
+      $('#accessToken').value = accessToken;
+      showToast('已取得 Access Token。', 'success');
       if (statusEl) {
-        statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
+        statusEl.textContent = '✓ 已取得 Token';
         statusEl.classList.add('fb-connected');
       }
-    });
-
-    FB.api('/me/accounts', { fields: 'name,access_token,id' }, function (resp) {
-      if (resp.data && resp.data.length > 0) {
-        state.fbPages = resp.data;
-        showPagePicker(resp.data);
-      } else {
-        $('#accessToken').value = userToken;
-        showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
-      }
-    });
+    }
   }
 
   function showPagePicker(pages) {
