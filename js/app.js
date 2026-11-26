@@ -257,6 +257,43 @@
     });
   }
 
+  async function getBusinessPages(accessToken) {
+    try {
+      const debugResp = await fetch(
+        'https://graph.facebook.com/v21.0/debug_token?input_token=' + accessToken + '&access_token=' + accessToken
+      );
+      const debugData = await debugResp.json();
+      const granular = debugData && debugData.data && debugData.data.granular_scopes;
+      if (!granular) return [];
+
+      const pageIds = new Set();
+      granular.forEach(function (s) {
+        if (s.target_ids) s.target_ids.forEach(function (id) { pageIds.add(id); });
+      });
+
+      if (pageIds.size === 0) return [];
+      console.log('[FB] Found page IDs from granular_scopes:', Array.from(pageIds));
+
+      const pages = [];
+      for (const pid of pageIds) {
+        try {
+          const pResp = await fetch(
+            'https://graph.facebook.com/v21.0/' + pid + '?fields=name,id&access_token=' + accessToken
+          );
+          const pData = await pResp.json();
+          if (pData.name && pData.id) {
+            pages.push({ name: pData.name, id: pData.id, access_token: accessToken });
+          }
+        } catch (e) {}
+      }
+      console.log('[FB] Resolved pages:', pages.map(function (p) { return p.name; }));
+      return pages;
+    } catch (e) {
+      console.error('[FB] getBusinessPages error:', e);
+      return [];
+    }
+  }
+
   async function onFbTokenObtained(accessToken) {
     const statusEl = $('#fbStatus');
     console.log('[FB] onFbTokenObtained called, token length:', accessToken ? accessToken.length : 0);
@@ -293,13 +330,19 @@
       if (acctData.data && acctData.data.length > 0) {
         state.fbPages = acctData.data;
         showPagePicker(acctData.data);
-      } else if (acctData.error) {
-        console.error('[FB] /me/accounts error:', acctData.error.message);
-        $('#accessToken').value = accessToken;
-        showToast('取得粉專列表失敗：' + acctData.error.message, 'error');
       } else {
-        $('#accessToken').value = accessToken;
-        showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
+        console.log('[FB] /me/accounts empty, trying debug_token for granular_scopes...');
+        const pages = await getBusinessPages(accessToken);
+        if (pages.length > 0) {
+          state.fbPages = pages;
+          showPagePicker(pages);
+        } else if (acctData.error) {
+          $('#accessToken').value = accessToken;
+          showToast('取得粉專列表失敗：' + acctData.error.message, 'error');
+        } else {
+          $('#accessToken').value = accessToken;
+          showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
+        }
       }
     } catch (e) {
       console.error('[FB] /me/accounts fetch error:', e);
