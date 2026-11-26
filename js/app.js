@@ -5,6 +5,11 @@
 (function () {
   'use strict';
 
+  // ---- Config ----
+  // 請將此 Client ID 替換為你在 Google Cloud Console 建立的 OAuth 2.0 Client ID
+  const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  const ALLOWED_DOMAINS = ['cm-media.com.tw', 'csii.com.tw'];
+
   // ---- State ----
   const state = {
     platform: 'facebook',
@@ -13,6 +18,7 @@
     excluded: [],
     winners: [],
     prizes: [{ name: '獎品 1', count: 1 }],
+    user: null,
   };
 
   // ---- DOM Refs ----
@@ -23,6 +29,8 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    initGoogleAuth();
+    bindLogout();
     bindPlatformTabs();
     bindModeTabs();
     bindCardToggles();
@@ -33,6 +41,140 @@
     bindHelp();
     bindTokenToggle();
     bindFileDrop();
+  }
+
+  // ---- Google Auth ----
+  function initGoogleAuth() {
+    // Check if already logged in this session
+    try {
+      const saved = sessionStorage.getItem('lottery_user');
+      if (saved) {
+        const user = JSON.parse(saved);
+        if (user && user.email && isDomainAllowed(user.email)) {
+          onLoginSuccess(user);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // Wait for Google Identity Services to load
+    if (typeof google === 'undefined' || !google.accounts) {
+      window.addEventListener('load', () => {
+        setTimeout(renderGoogleButton, 500);
+      });
+    } else {
+      renderGoogleButton();
+    }
+  }
+
+  function renderGoogleButton() {
+    if (typeof google === 'undefined' || !google.accounts) {
+      setTimeout(renderGoogleButton, 500);
+      return;
+    }
+
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      auto_select: false,
+    });
+
+    google.accounts.id.renderButton(
+      $('#googleSignInBtn'),
+      {
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'rectangular',
+        width: 300,
+        locale: 'zh_TW',
+      }
+    );
+  }
+
+  function handleGoogleCredential(response) {
+    const payload = parseJwt(response.credential);
+    if (!payload) {
+      showLoginError('登入失敗，請重試。');
+      return;
+    }
+
+    const email = payload.email || '';
+    if (!isDomainAllowed(email)) {
+      const domain = email.split('@')[1] || '未知';
+      showLoginError(`此帳號 (${email}) 不屬於公司網域。僅限 @cm-media.com.tw 及 @csii.com.tw 帳號使用。`);
+      return;
+    }
+
+    const user = {
+      name: payload.name || email.split('@')[0],
+      email: email,
+      picture: payload.picture || '',
+    };
+
+    try {
+      sessionStorage.setItem('lottery_user', JSON.stringify(user));
+    } catch (e) {}
+
+    onLoginSuccess(user);
+  }
+
+  function isDomainAllowed(email) {
+    const domain = (email || '').split('@')[1];
+    return domain && ALLOWED_DOMAINS.includes(domain.toLowerCase());
+  }
+
+  function onLoginSuccess(user) {
+    state.user = user;
+
+    // Hide login overlay
+    $('#loginOverlay').classList.add('hidden');
+
+    // Show user info in header
+    const userInfo = $('#userInfo');
+    userInfo.hidden = false;
+    $('#userName').textContent = user.name;
+    if (user.picture) {
+      $('#userAvatar').src = user.picture;
+      $('#userAvatar').style.display = '';
+    } else {
+      $('#userAvatar').style.display = 'none';
+    }
+  }
+
+  function showLoginError(msg) {
+    const el = $('#loginError');
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  function bindLogout() {
+    $('#btnLogout').addEventListener('click', () => {
+      try { sessionStorage.removeItem('lottery_user'); } catch (e) {}
+      state.user = null;
+      $('#userInfo').hidden = true;
+      $('#loginError').hidden = true;
+      $('#loginOverlay').classList.remove('hidden');
+
+      if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.disableAutoSelect();
+      }
+    });
+  }
+
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ---- Platform Tabs ----
