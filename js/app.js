@@ -198,9 +198,11 @@
 
   function handleFbRedirect() {
     const hash = window.location.hash;
+    console.log('[FB] handleFbRedirect, hash:', hash ? hash.substring(0, 50) + '...' : '(none)');
     if (hash && hash.includes('access_token=')) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
+      console.log('[FB] Got access_token from hash, length:', accessToken ? accessToken.length : 0);
       if (accessToken) {
         history.replaceState(null, '', window.location.pathname + window.location.search);
         sessionStorage.setItem('fb_access_token', accessToken);
@@ -208,6 +210,7 @@
       }
     } else {
       const saved = sessionStorage.getItem('fb_access_token');
+      console.log('[FB] No hash token, saved token:', saved ? 'exists (length ' + saved.length + ')' : 'none');
       if (saved) {
         waitForLogin(function () { onFbTokenObtained(saved); });
       }
@@ -216,9 +219,15 @@
 
   function waitForLogin(callback) {
     const overlay = $('#loginOverlay');
-    if (!overlay || overlay.classList.contains('hidden')) { callback(); return; }
+    const isHidden = !overlay || overlay.classList.contains('hidden');
+    console.log('[FB] waitForLogin, overlay hidden:', isHidden);
+    if (isHidden) { callback(); return; }
     const observer = new MutationObserver(function () {
-      if (overlay.classList.contains('hidden')) { observer.disconnect(); callback(); }
+      if (overlay.classList.contains('hidden')) {
+        console.log('[FB] Login overlay now hidden, firing FB callback');
+        observer.disconnect();
+        callback();
+      }
     });
     observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
   }
@@ -250,15 +259,27 @@
 
   async function onFbTokenObtained(accessToken) {
     const statusEl = $('#fbStatus');
+    console.log('[FB] onFbTokenObtained called, token length:', accessToken ? accessToken.length : 0);
 
     try {
       const meResp = await fetch('https://graph.facebook.com/v21.0/me?fields=name&access_token=' + accessToken);
       const me = await meResp.json();
+      console.log('[FB] /me response:', JSON.stringify(me));
       if (me && !me.error && statusEl) {
         statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
         statusEl.classList.add('fb-connected');
+      } else if (me && me.error) {
+        console.error('[FB] /me error:', me.error.message);
+        if (statusEl) {
+          statusEl.textContent = '⚠ Token 已過期，請重新登入';
+          statusEl.classList.add('fb-connected');
+        }
+        sessionStorage.removeItem('fb_access_token');
+        showToast('Facebook Token 已過期，請重新點擊「用 Facebook 登入取得」。', 'warning');
+        return;
       }
     } catch (e) {
+      console.error('[FB] /me fetch error:', e);
       if (statusEl) {
         statusEl.textContent = '✓ 已取得 Token';
         statusEl.classList.add('fb-connected');
@@ -268,14 +289,20 @@
     try {
       const acctResp = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=name,access_token,id&access_token=' + accessToken);
       const acctData = await acctResp.json();
+      console.log('[FB] /me/accounts response:', JSON.stringify(acctData).substring(0, 500));
       if (acctData.data && acctData.data.length > 0) {
         state.fbPages = acctData.data;
         showPagePicker(acctData.data);
+      } else if (acctData.error) {
+        console.error('[FB] /me/accounts error:', acctData.error.message);
+        $('#accessToken').value = accessToken;
+        showToast('取得粉專列表失敗：' + acctData.error.message, 'error');
       } else {
         $('#accessToken').value = accessToken;
         showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
       }
     } catch (e) {
+      console.error('[FB] /me/accounts fetch error:', e);
       $('#accessToken').value = accessToken;
       showToast('已取得 Access Token，但無法取得粉專列表。', 'info');
     }
