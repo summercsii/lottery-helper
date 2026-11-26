@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>千享抽獎小幫手 - Facebook / Instagram 抽獎工具</title>
+  <meta name="description" content="免費 Facebook、Instagram 粉絲團留言抽獎工具，公平隨機抽出得獎者">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="#" class="logo">
+        <svg class="logo-icon" viewBox="0 0 32 32" width="28" height="28"><circle cx="16" cy="16" r="15" fill="#fff" opacity=".15"/><path d="M16 4a2 2 0 0 1 2 2v3.17a7 7 0 0 1 4.83 4.83H26a2 2 0 1 1 0 4h-3.17A7 7 0 0 1 18 22.83V26a2 2 0 1 1-4 0v-3.17A7 7 0 0 1 9.17 18H6a2 2 0 1 1 0-4h3.17A7 7 0 0 1 14 9.17V6a2 2 0 0 1 2-2zm0 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="#fff"/></svg>
+        <span>千享抽獎小幫手</span>
+      </a>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-platform="facebook">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </button>
+        <button class="nav-tab" data-platform="instagram">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          Instagram
+        </button>
+      </nav>
+      <div class="header-right">
+        <button class="btn-help" id="btnHelp" title="使用說明">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="container">
+
+      <!-- Platform Title -->
+      <div class="platform-title">
+        <h1 id="platformTitle">Facebook 抽獎</h1>
+        <p id="platformDesc">讀取粉絲專頁貼文留言，由系統透過隨機演算法公平抽出得獎者。</p>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div class="layout">
+        <!-- Left Column: Data & Settings -->
+        <div class="col-left">
+
+          <!-- Data Source Card -->
+          <div class="card" id="cardSource">
+            <div class="card-header" data-toggle="cardSourceBody">
+              <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> 資料來源</h2>
+              <svg class="chevron" viewBox="0 0 24 24" width="20" height="20"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"/></svg>
+            </div>
+            <div class="card-body" id="cardSourceBody">
+              <!-- Mode Tabs -->
+              <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="url">貼文網址</button>
+                <button class="mode-tab" data-mode="manual">手動匯入</button>
+              </div>
+
+              <!-- URL Mode -->
+              <div class="mode-content active" id="modeUrl">
+                <div class="form-group">
+                  <label for="postUrl">貼文網址</label>
+                  <input type="url" id="postUrl" placeholder="請貼上 Facebook 或 Instagram 貼文網址" class="input">
+                  <small class="hint" id="urlHint">支援格式：https://www.facebook.com/... 或 https://www.instagram.com/p/...</small>
+                </div>
+                <div class="form-group">
+                  <label for="accessToken">Access Token <span class="badge badge-optional">選填</span></label>
+                  <div class="input-group">
+                    <input type="password" id="accessToken" placeholder="輸入 Facebook Graph API Token" class="input">
+                    <button class="btn-icon" id="toggleToken" title="顯示/隱藏">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                  </div>
+                  <small class="hint">如有 Token 可自動抓取留言；無 Token 請使用手動匯入。<a href="#" id="tokenHelp">如何取得？</a></small>
+                </div>
+                <div class="btn-row">
+                  <button class="btn btn-primary" id="btnFetchComments">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                    抓留言
+                  </button>
+                  <button class="btn btn-secondary" id="btnFetchReactions" data-fb-only>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    抓心情
+                  </button>
+                </div>
+              </div>
+
+              <!-- Manual Mode -->
+              <div class="mode-content" id="modeManual">
+                <div class="form-group">
+                  <label for="manualData">匯入留言資料</label>
+                  <textarea id="manualData" class="input textarea" rows="8" placeholder="每行一筆資料，格式：&#10;名稱&#10;或&#10;名稱, 留言內容&#10;&#10;範例：&#10;王小明, 我要參加抽獎！&#10;李小華, +1&#10;張大偉, 想要這個獎品"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>或上傳檔案</label>
+                  <div class="file-drop" id="fileDrop">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" opacity="0.4"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <p>拖曳檔案至此或<label for="fileInput" class="file-label">選擇檔案</label></p>
+                    <small>支援 .csv, .txt, .xlsx</small>
+                    <input type="file" id="fileInput" accept=".csv,.txt,.xlsx" hidden>
+                  </div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn btn-primary" id="btnImport">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+                    匯入資料
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lottery Settings Card -->
+          <div class="card" id="cardSettings">
+            <div class="card-header" data-toggle="cardSettingsBody">
+              <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg> 抽獎設定</h2>
+              <svg class="chevron" viewBox="0 0 24 24" width="20" height="20"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"/></svg>
+            </div>
+            <div class="card-body" id="cardSettingsBody">
+              <div class="form-group">
+                <label for="activityName">活動名稱</label>
+                <input type="text" id="activityName" placeholder="例：年末感恩抽獎活動" class="input">
+              </div>
+
+              <!-- Prizes -->
+              <div class="form-group">
+                <label>獎項設定</label>
+                <div id="prizeList">
+                  <div class="prize-row" data-index="0">
+                    <input type="text" class="input prize-name" placeholder="獎品名稱" value="獎品 1">
+                    <input type="number" class="input prize-count" min="1" value="1" title="中獎人數">
+                    <span class="prize-count-label">名</span>
+                  </div>
+                </div>
+                <div class="btn-row" style="margin-top: 8px">
+                  <button class="btn btn-sm btn-outline" id="btnAddPrize">+ 增加獎項</button>
+                  <button class="btn btn-sm btn-outline btn-danger-outline" id="btnRemovePrize">- 減少獎項</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Card -->
+          <div class="card" id="cardFilter">
+            <div class="card-header" data-toggle="cardFilterBody">
+              <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg> 篩選條件</h2>
+              <svg class="chevron" viewBox="0 0 24 24" width="20" height="20"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="currentColor"/></svg>
+            </div>
+            <div class="card-body" id="cardFilterBody">
+              <div class="filter-checks">
+                <label class="check-item">
+                  <input type="checkbox" id="filterDuplicate" checked>
+                  <span class="checkmark"></span>
+                  <div>
+                    <strong>排除重複帳號</strong>
+                    <small>同一帳號出現多次，只保留一次抽獎資格</small>
+                  </div>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" id="filterRepeatWinner">
+                  <span class="checkmark"></span>
+                  <div>
+                    <strong>排除重複中獎</strong>
+                    <small>同一帳號最多只能中獎一次</small>
+                  </div>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" id="filterHidden">
+                  <span class="checkmark"></span>
+                  <div>
+                    <strong>排除隱藏留言</strong>
+                    <small>被平台或主辦者隱藏的留言不列入名單</small>
+                  </div>
+                </label>
+              </div>
+
+              <div class="filter-advanced">
+                <div class="form-group">
+                  <label for="filterKeyword">關鍵字篩選</label>
+                  <input type="text" id="filterKeyword" placeholder="留言須包含此關鍵字" class="input">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="filterTagMin">最少標記好友</label>
+                    <input type="number" id="filterTagMin" min="0" value="0" class="input">
+                  </div>
+                  <div class="form-group">
+                    <label for="filterMinLength">最短留言字數</label>
+                    <input type="number" id="filterMinLength" min="0" value="0" class="input">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>排除特定帳號</label>
+                  <input type="text" id="filterExcludeUsers" placeholder="輸入帳號名稱，以逗號分隔" class="input">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Participant List & Draw -->
+        <div class="col-right">
+
+          <!-- Participant List Card -->
+          <div class="card" id="cardList">
+            <div class="card-header">
+              <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> 抽獎名單</h2>
+              <div class="list-stats">
+                <span class="stat stat-match" id="statMatch">0 筆符合</span>
+                <span class="stat stat-exclude" id="statExclude">0 筆排除</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="participant-list" id="participantList">
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" opacity="0.2"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                  <p>尚無資料</p>
+                  <small>請先從左側匯入留言資料</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Draw Button -->
+          <button class="btn btn-draw" id="btnDraw" disabled>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+            立即開獎
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Draw Modal -->
+  <div class="modal-overlay" id="drawModal">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">&times;</button>
+
+      <!-- Draw Animation State -->
+      <div class="draw-stage" id="drawStage">
+        <div class="draw-header">
+          <h2 id="drawTitle">抽獎進行中</h2>
+          <p id="drawPrizeName"></p>
+        </div>
+        <div class="draw-slot-container">
+          <div class="draw-slot" id="drawSlot">
+            <div class="slot-inner" id="slotInner"></div>
+          </div>
+        </div>
+        <button class="btn btn-accent btn-lg" id="btnReveal">揭曉得獎者</button>
+      </div>
+
+      <!-- Results State -->
+      <div class="draw-results" id="drawResults" hidden>
+        <div class="results-header">
+          <h2>🎉 抽獎結果</h2>
+          <p id="resultsActivityName"></p>
+        </div>
+        <div class="results-list" id="resultsList"></div>
+        <div class="results-actions">
+          <button class="btn btn-primary" id="btnExportImage">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            匯出圖片
+          </button>
+          <button class="btn btn-secondary" id="btnExportCSV">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            匯出 CSV
+          </button>
+          <button class="btn btn-outline" id="btnRedraw">重新抽獎</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal modal-help">
+      <button class="modal-close" id="helpClose">&times;</button>
+      <h2>使用說明</h2>
+      <div class="help-content">
+        <div class="help-section">
+          <h3>📋 基本步驟</h3>
+          <ol>
+            <li><strong>匯入資料</strong> — 貼上貼文網址搭配 Access Token 自動抓取留言，或使用手動匯入。</li>
+            <li><strong>設定獎項</strong> — 設定活動名稱、獎品名稱和中獎人數。</li>
+            <li><strong>篩選條件</strong> — 選擇要排除重複帳號、關鍵字篩選等條件。</li>
+            <li><strong>立即開獎</strong> — 點擊按鈕，系統以隨機演算法公平抽出得獎者！</li>
+          </ol>
+        </div>
+        <div class="help-section">
+          <h3>🔑 如何取得 Access Token？</h3>
+          <ol>
+            <li>前往 <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Facebook Graph API Explorer</a></li>
+            <li>選擇你的應用程式和粉絲專頁</li>
+            <li>勾選需要的權限（pages_read_engagement）</li>
+            <li>點擊「Generate Access Token」</li>
+            <li>複製 Token 貼到本工具中</li>
+          </ol>
+        </div>
+        <div class="help-section">
+          <h3>📝 手動匯入格式</h3>
+          <p>每行一筆，格式為「名稱」或「名稱, 留言內容」：</p>
+          <pre>王小明, 我要參加！
+李小華, +1 抽起來
+張大偉</pre>
+        </div>
+        <div class="help-section">
+          <h3>⚙️ 篩選功能說明</h3>
+          <ul>
+            <li><strong>排除重複帳號</strong>：同一帳號多次留言，只算一次。</li>
+            <li><strong>排除重複中獎</strong>：同一帳號最多中獎一次。</li>
+            <li><strong>關鍵字篩選</strong>：留言必須包含指定關鍵字才符合資格。</li>
+            <li><strong>標記好友</strong>：留言中需標記指定數量以上的好友（@提及）。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>&copy; 2024 千享抽獎小幫手 — 公平、透明、好用的抽獎工具</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
