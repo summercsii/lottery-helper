@@ -10,6 +10,9 @@
   const GOOGLE_CLIENT_ID = '320319664058-8tgd999jbe1fq3b63b9m0u8nm50mg13g.apps.googleusercontent.com';
   const ALLOWED_DOMAINS = ['cm-media.com.tw', 'csii.com.tw'];
 
+  // Facebook App ID — 請替換為你在 Meta for Developers 建立的 App ID
+  const FB_APP_ID = 'YOUR_FB_APP_ID';
+
   // ---- State ----
   const state = {
     platform: 'facebook',
@@ -30,6 +33,7 @@
 
   function init() {
     initGoogleAuth();
+    initFacebookSDK();
     bindLogout();
     bindPlatformTabs();
     bindModeTabs();
@@ -41,6 +45,7 @@
     bindHelp();
     bindTokenToggle();
     bindFileDrop();
+    bindFbLogin();
   }
 
   // ---- Google Auth ----
@@ -175,6 +180,92 @@
     } catch (e) {
       return null;
     }
+  }
+
+  // ---- Facebook SDK ----
+  function initFacebookSDK() {
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: FB_APP_ID,
+        cookie: true,
+        xfbml: false,
+        version: 'v21.0',
+      });
+      FB.getLoginStatus(function (response) {
+        if (response.status === 'connected') {
+          onFbLoginSuccess(response.authResponse);
+        }
+      });
+    };
+  }
+
+  function bindFbLogin() {
+    const btn = $('#btnFbLogin');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (typeof FB === 'undefined') {
+        showToast('Facebook SDK 載入中，請稍後再試。', 'warning');
+        return;
+      }
+      FB.login(function (response) {
+        if (response.authResponse) {
+          onFbLoginSuccess(response.authResponse);
+        } else {
+          showToast('Facebook 登入已取消。', 'warning');
+        }
+      }, {
+        scope: 'pages_show_list,pages_read_engagement,pages_read_user_content',
+      });
+    });
+  }
+
+  function onFbLoginSuccess(authResponse) {
+    const userToken = authResponse.accessToken;
+    const statusEl = $('#fbStatus');
+
+    FB.api('/me', { fields: 'name' }, function (me) {
+      if (statusEl) {
+        statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
+        statusEl.classList.add('fb-connected');
+      }
+    });
+
+    FB.api('/me/accounts', { fields: 'name,access_token,id' }, function (resp) {
+      if (resp.data && resp.data.length > 0) {
+        state.fbPages = resp.data;
+        showPagePicker(resp.data);
+      } else {
+        $('#accessToken').value = userToken;
+        showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
+      }
+    });
+  }
+
+  function showPagePicker(pages) {
+    const existing = $('#fbPagePicker');
+    if (existing) existing.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'fbPagePicker';
+    wrapper.className = 'fb-page-picker';
+    wrapper.innerHTML = '<label>選擇粉絲專頁</label>' +
+      '<select class="input" id="fbPageSelect">' +
+      pages.map(function (p) {
+        return '<option value="' + p.access_token + '">' + p.name + '</option>';
+      }).join('') +
+      '</select>';
+
+    const tokenGroup = $('#accessToken').closest('.form-group');
+    tokenGroup.appendChild(wrapper);
+
+    const select = $('#fbPageSelect');
+    $('#accessToken').value = pages[0].access_token;
+    showToast('已取得粉專 Page Token，可直接抓取留言！', 'success');
+
+    select.addEventListener('change', function () {
+      $('#accessToken').value = this.value;
+      showToast('已切換至「' + this.options[this.selectedIndex].text + '」的 Token。', 'info');
+    });
   }
 
   // ---- Platform Tabs ----

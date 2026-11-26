@@ -252,6 +252,22 @@ input, textarea, select { font-family: inherit; }
 .hint { font-size: .8rem; color: var(--text-muted); margin-top: 4px; display: block; }
 .hint a { color: var(--primary); font-weight: 500; }
 
+/* Facebook Login */
+.token-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.btn-fb-login {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: none; border-radius: 6px;
+  background: #1877f2; color: #fff; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: background .2s;
+}
+.btn-fb-login:hover { background: #166fe5; }
+.btn-fb-login svg { flex-shrink: 0; }
+.fb-status { font-size: .8rem; color: var(--text-muted); }
+.fb-status.fb-connected { color: #16a34a; font-weight: 500; }
+.fb-page-picker { margin-top: 8px; }
+.fb-page-picker label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-secondary); }
+.fb-page-picker select { width: 100%; }
+
 .badge {
   display: inline-block;
   font-size: .7rem;
