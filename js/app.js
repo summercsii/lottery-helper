@@ -667,7 +667,9 @@
         id: c.from ? c.from.id : Math.random().toString(36).slice(2),
         name: c.from ? c.from.name : '未知使用者',
         comment: c.message || '',
-        tagCount: c.message_tags ? c.message_tags.length : (c.message ? (c.message.match(/@/g) || []).length : 0),
+        tagCount: c.message_tags
+          ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
+          : (c.message ? (c.message.match(/@/g) || []).length : 0),
         time: c.created_time || '',
         hidden: c.is_hidden || false,
         source: 'comment',
@@ -966,6 +968,7 @@
       return;
     }
 
+    const showTagBadge = parseInt($('#filterTagMin').value) > 0;
     const items = state.filtered
       .map(
         (p, i) => `
@@ -973,6 +976,7 @@
         <span class="p-index">${i + 1}</span>
         <div class="p-avatar">${p.name.charAt(0)}</div>
         <span class="p-name">${escapeHtml(p.name)}</span>
+        ${showTagBadge && p.tagCount != null ? '<span class="p-tag-badge" title="標記好友數">@' + p.tagCount + '</span>' : ''}
         <span class="p-comment">${escapeHtml(p.comment)}</span>
       </div>`
       )
