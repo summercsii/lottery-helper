@@ -11,7 +11,7 @@
   const ALLOWED_DOMAINS = ['cm-media.com.tw', 'csii.com.tw'];
 
   // Facebook App ID — 請替換為你在 Meta for Developers 建立的 App ID
-  const FB_APP_ID = 'YOUR_FB_APP_ID';
+  const FB_APP_ID = '198062200865136';
 
   // ---- State ----
   const state = {
