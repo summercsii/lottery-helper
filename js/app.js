@@ -278,11 +278,11 @@
       for (const pid of pageIds) {
         try {
           const pResp = await fetch(
-            'https://graph.facebook.com/v21.0/' + pid + '?fields=name,id&access_token=' + accessToken
+            'https://graph.facebook.com/v21.0/' + pid + '?fields=name,id,access_token&access_token=' + accessToken
           );
           const pData = await pResp.json();
           if (pData.name && pData.id) {
-            pages.push({ name: pData.name, id: pData.id, access_token: accessToken });
+            pages.push({ name: pData.name, id: pData.id, access_token: pData.access_token || accessToken });
           }
         } catch (e) {}
       }
