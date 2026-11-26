@@ -46,6 +46,7 @@
     bindTokenToggle();
     bindFileDrop();
     bindFbLogin();
+    bindPostUrlClear();
   }
 
   // ---- Google Auth ----
@@ -237,6 +238,16 @@
     });
   }
 
+  function bindPostUrlClear() {
+    const input = $('#postUrl');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      state._selectedPostId = null;
+      const sel = document.querySelector('#fbPostPicker .post-item.selected');
+      if (sel) sel.classList.remove('selected');
+    });
+  }
+
   function onFbTokenObtained(accessToken) {
     const statusEl = $('#fbStatus');
     if (typeof FB !== 'undefined') {
@@ -273,11 +284,16 @@
     wrapper.id = 'fbPagePicker';
     wrapper.className = 'fb-page-picker';
     wrapper.innerHTML = '<label>選擇粉絲專頁</label>' +
+      '<div class="page-picker-row">' +
       '<select class="input" id="fbPageSelect">' +
       pages.map(function (p) {
-        return '<option value="' + p.access_token + '">' + p.name + '</option>';
+        return '<option value="' + p.access_token + '" data-page-id="' + p.id + '">' + p.name + '</option>';
       }).join('') +
-      '</select>';
+      '</select>' +
+      '<button class="btn btn-sm btn-outline" id="btnPickPost" title="選擇此粉專的貼文">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' +
+      ' 選擇貼文</button>' +
+      '</div>';
 
     const tokenGroup = $('#accessToken').closest('.form-group');
     tokenGroup.appendChild(wrapper);
@@ -288,7 +304,98 @@
 
     select.addEventListener('change', function () {
       $('#accessToken').value = this.value;
+      const existingPostPicker = $('#fbPostPicker');
+      if (existingPostPicker) existingPostPicker.remove();
       showToast('已切換至「' + this.options[this.selectedIndex].text + '」的 Token。', 'info');
+    });
+
+    $('#btnPickPost').addEventListener('click', loadPagePosts);
+  }
+
+  async function loadPagePosts() {
+    const select = $('#fbPageSelect');
+    if (!select) return;
+    const token = select.value;
+    const pageId = select.options[select.selectedIndex].dataset.pageId;
+    const pageName = select.options[select.selectedIndex].text;
+    const btn = $('#btnPickPost');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 載入中...';
+
+    try {
+      const apiUrl = 'https://graph.facebook.com/v21.0/' + pageId +
+        '/feed?fields=id,message,created_time,full_picture,permalink_url&limit=25&access_token=' + token;
+      const resp = await fetch(apiUrl);
+      const data = await resp.json();
+
+      if (data.error) throw new Error(data.error.message || '載入貼文失敗');
+      if (!data.data || data.data.length === 0) {
+        showToast('此粉專目前沒有貼文。', 'info');
+        return;
+      }
+
+      showPostPicker(data.data, pageName);
+    } catch (err) {
+      showToast('載入貼文失敗：' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' +
+        ' 選擇貼文';
+    }
+  }
+
+  function showPostPicker(posts, pageName) {
+    const existing = $('#fbPostPicker');
+    if (existing) existing.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'fbPostPicker';
+    wrapper.className = 'fb-post-picker';
+
+    const formatDate = function (iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    };
+
+    const truncate = function (text, max) {
+      if (!text) return '（無文字內容）';
+      return text.length > max ? text.substring(0, max) + '…' : text;
+    };
+
+    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的近期貼文</label>' +
+      '<div class="post-list">' +
+      posts.map(function (p) {
+        return '<div class="post-item" data-post-id="' + p.id + '"' +
+          (p.permalink_url ? ' data-permalink="' + escapeHtml(p.permalink_url) + '"' : '') + '>' +
+          (p.full_picture ? '<img class="post-thumb" src="' + escapeHtml(p.full_picture) + '" alt="">' : '') +
+          '<div class="post-info">' +
+          '<div class="post-text">' + escapeHtml(truncate(p.message, 80)) + '</div>' +
+          '<div class="post-date">' + formatDate(p.created_time) + '</div>' +
+          '</div></div>';
+      }).join('') +
+      '</div>';
+
+    const picker = $('#fbPagePicker');
+    if (picker) {
+      picker.after(wrapper);
+    } else {
+      const tokenGroup = $('#accessToken').closest('.form-group');
+      tokenGroup.appendChild(wrapper);
+    }
+
+    wrapper.querySelectorAll('.post-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
+        item.classList.add('selected');
+        const postId = item.dataset.postId;
+        $('#postUrl').value = item.dataset.permalink || postId;
+        state._selectedPostId = postId;
+        showToast('已選擇貼文，可直接點「抓留言」或「抓心情」。', 'success');
+      });
     });
   }
 
@@ -396,8 +503,8 @@
     const url = $('#postUrl').value.trim();
     const token = $('#accessToken').value.trim();
 
-    if (!url) {
-      showToast('請輸入貼文網址', 'warning');
+    if (!url && !state._selectedPostId) {
+      showToast('請輸入貼文網址，或使用「選擇貼文」功能。', 'warning');
       return;
     }
     if (!token) {
@@ -405,10 +512,13 @@
       return;
     }
 
-    const postId = extractPostId(url);
-    if (!postId) {
-      showToast('無法解析貼文網址，請確認格式是否正確。', 'error');
-      return;
+    let postIdRaw = state._selectedPostId || null;
+    if (!postIdRaw && url) {
+      postIdRaw = extractPostId(url);
+      if (!postIdRaw) {
+        showToast('無法解析貼文網址，請確認格式或改用「選擇貼文」。', 'error');
+        return;
+      }
     }
 
     const btn = $('#btnFetchComments');
@@ -416,7 +526,12 @@
     btn.innerHTML = '<span class="spinner"></span> 抓取中...';
 
     try {
-      const apiUrl = `https://graph.facebook.com/v18.0/${postId}/comments?fields=from,message,created_time,is_hidden&limit=500&access_token=${token}`;
+      const postId = await resolvePostId(postIdRaw, token);
+      if (!postId) {
+        showToast('無法解析貼文 ID', 'error');
+        return;
+      }
+      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=from,message,created_time,is_hidden&limit=500&access_token=${token}`;
       let allComments = [];
       let nextUrl = apiUrl;
 
@@ -460,8 +575,8 @@
     const url = $('#postUrl').value.trim();
     const token = $('#accessToken').value.trim();
 
-    if (!url) {
-      showToast('請輸入貼文網址', 'warning');
+    if (!url && !state._selectedPostId) {
+      showToast('請輸入貼文網址，或使用「選擇貼文」功能。', 'warning');
       return;
     }
     if (!token) {
@@ -469,10 +584,13 @@
       return;
     }
 
-    const postId = extractPostId(url);
-    if (!postId) {
-      showToast('無法解析貼文網址', 'error');
-      return;
+    let postIdRaw = state._selectedPostId || null;
+    if (!postIdRaw && url) {
+      postIdRaw = extractPostId(url);
+      if (!postIdRaw) {
+        showToast('無法解析貼文網址，請確認格式或改用「選擇貼文」。', 'error');
+        return;
+      }
     }
 
     const btn = $('#btnFetchReactions');
@@ -480,7 +598,12 @@
     btn.innerHTML = '<span class="spinner"></span> 抓取中...';
 
     try {
-      const apiUrl = `https://graph.facebook.com/v18.0/${postId}/reactions?fields=id,name,type&limit=500&access_token=${token}`;
+      const postId = await resolvePostId(postIdRaw, token);
+      if (!postId) {
+        showToast('無法解析貼文 ID', 'error');
+        return;
+      }
+      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/reactions?fields=id,name,type&limit=500&access_token=${token}`;
       let allReactions = [];
       let nextUrl = apiUrl;
 
@@ -544,7 +667,7 @@
   }
 
   function extractPostId(url) {
-    // Facebook post URL patterns
+    // Facebook post URL patterns — numeric IDs
     const fbPatterns = [
       /facebook\.com\/[^/]+\/posts\/(\d+)/,
       /facebook\.com\/permalink\.php\?story_fbid=(\d+)/,
@@ -563,6 +686,11 @@
       }
     }
 
+    // Facebook pfbid format — needs Graph API resolution
+    if (/facebook\.com\/.+\/posts\/pfbid/.test(url) || /facebook\.com\/.+\/pfbid/.test(url)) {
+      return { type: 'pfbid', url: url.split('?')[0].split('#')[0] };
+    }
+
     // Instagram post URL patterns
     const igPatterns = [
       /instagram\.com\/p\/([A-Za-z0-9_-]+)/,
@@ -574,6 +702,20 @@
       if (match) return match[1];
     }
 
+    return null;
+  }
+
+  async function resolvePostId(postIdOrObj, token) {
+    if (typeof postIdOrObj === 'string') return postIdOrObj;
+    if (postIdOrObj && postIdOrObj.type === 'pfbid') {
+      const resp = await fetch(
+        'https://graph.facebook.com/v21.0/?id=' + encodeURIComponent(postIdOrObj.url) + '&access_token=' + token
+      );
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || '無法解析 pfbid 網址');
+      if (data.id) return data.id;
+      throw new Error('無法從此網址取得貼文 ID，請改用「選擇粉專貼文」功能。');
+    }
     return null;
   }
 
