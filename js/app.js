@@ -644,7 +644,7 @@
         showToast('無法解析貼文 ID', 'error');
         return;
       }
-      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=from,message,message_tags,created_time,is_hidden&limit=500&access_token=${token}`;
+      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from,message,message_tags,created_time,is_hidden&limit=500&access_token=${token}`;
       let allComments = [];
       let nextUrl = apiUrl;
 
@@ -664,8 +664,8 @@
       }
 
       state.participants = allComments.map((c) => ({
-        id: c.from ? c.from.id : Math.random().toString(36).slice(2),
-        name: c.from ? c.from.name : '未知使用者',
+        id: c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2)),
+        name: c.from ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
         comment: c.message || '',
         tagCount: c.message_tags
           ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
@@ -886,11 +886,11 @@
       });
     }
 
-    // Remove duplicates (keep first occurrence)
+    // Remove duplicates (keep first occurrence, by user ID)
     if (removeDuplicates) {
       const seen = new Set();
       list = list.filter((p) => {
-        const key = p.name.toLowerCase();
+        const key = p.id;
         if (seen.has(key)) {
           excludedItems.push(p);
           return false;
