@@ -214,11 +214,12 @@
   }
 
   function waitForLogin(callback) {
-    if ($('#app').style.display !== 'none') { callback(); return; }
+    const overlay = $('#loginOverlay');
+    if (!overlay || overlay.classList.contains('hidden')) { callback(); return; }
     const observer = new MutationObserver(function () {
-      if ($('#app').style.display !== 'none') { observer.disconnect(); callback(); }
+      if (overlay.classList.contains('hidden')) { observer.disconnect(); callback(); }
     });
-    observer.observe($('#app'), { attributes: true, attributeFilter: ['style'] });
+    observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
   }
 
   function bindFbLogin() {
