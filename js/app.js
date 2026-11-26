@@ -7,7 +7,7 @@
 
   // ---- Config ----
   // 請將此 Client ID 替換為你在 Google Cloud Console 建立的 OAuth 2.0 Client ID
-  const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = '320319664058-8tgd999jbe1fq3b63b9m0u8nm50mg13g.apps.googleusercontent.com';
   const ALLOWED_DOMAINS = ['cm-media.com.tw', 'csii.com.tw'];
 
   // ---- State ----
