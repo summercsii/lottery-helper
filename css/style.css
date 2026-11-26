@@ -397,6 +397,9 @@ input, textarea, select { font-family: inherit; }
 .prize-row .prize-count { width: 70px; text-align: center; }
 .prize-count-label { color: var(--text-muted); font-size: .85rem; white-space: nowrap; }
 
+.batch-prize-area { margin-top: 10px; padding: 12px; background: var(--bg-alt, #f8fafc); border-radius: 8px; border: 1px dashed var(--border-color, #e2e8f0); }
+.batch-prize-area textarea { font-size: .85rem; }
+
 /* ---- Filter Checks ---- */
 .filter-checks { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
 .check-item {

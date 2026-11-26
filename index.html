@@ -179,6 +179,14 @@
                 <div class="btn-row" style="margin-top: 8px">
                   <button class="btn btn-sm btn-outline" id="btnAddPrize">+ 增加獎項</button>
                   <button class="btn btn-sm btn-outline btn-danger-outline" id="btnRemovePrize">- 減少獎項</button>
+                  <button class="btn btn-sm btn-outline" id="btnBatchPrize">📋 批次輸入</button>
+                </div>
+                <div id="batchPrizeArea" class="batch-prize-area" hidden>
+                  <textarea id="batchPrizeInput" class="input textarea" rows="5" placeholder="每行一個獎項，格式：&#10;獎品名稱 x 數量&#10;&#10;範例：&#10;iPhone 16 x1&#10;AirPods x3&#10;超商禮券 x5"></textarea>
+                  <div class="btn-row" style="margin-top: 6px">
+                    <button class="btn btn-sm btn-primary" id="btnApplyBatch">套用</button>
+                    <button class="btn btn-sm btn-outline" id="btnCancelBatch">取消</button>
+                  </div>
                 </div>
               </div>
             </div>

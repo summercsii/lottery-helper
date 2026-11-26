@@ -541,6 +541,44 @@
         renderPrizes();
       }
     });
+
+    $('#btnBatchPrize').addEventListener('click', () => {
+      const area = $('#batchPrizeArea');
+      area.hidden = !area.hidden;
+    });
+
+    $('#btnCancelBatch').addEventListener('click', () => {
+      $('#batchPrizeArea').hidden = true;
+      $('#batchPrizeInput').value = '';
+    });
+
+    $('#btnApplyBatch').addEventListener('click', () => {
+      const text = $('#batchPrizeInput').value.trim();
+      if (!text) return;
+      const lines = text.split('\n').filter(l => l.trim());
+      const parsed = [];
+      lines.forEach(line => {
+        line = line.trim();
+        var m = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+        if (m) {
+          parsed.push({ name: m[1].trim(), count: parseInt(m[2]) || 1 });
+        } else {
+          m = line.match(/^(.+?)[,，]\s*(\d+)$/);
+          if (m) {
+            parsed.push({ name: m[1].trim(), count: parseInt(m[2]) || 1 });
+          } else {
+            parsed.push({ name: line, count: 1 });
+          }
+        }
+      });
+      if (parsed.length > 0) {
+        state.prizes = parsed;
+        renderPrizes();
+        $('#batchPrizeArea').hidden = true;
+        $('#batchPrizeInput').value = '';
+        showToast('已套用 ' + parsed.length + ' 個獎項！', 'success');
+      }
+    });
   }
 
   function renderPrizes() {
@@ -606,7 +644,7 @@
         showToast('無法解析貼文 ID', 'error');
         return;
       }
-      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=from,message,created_time,is_hidden&limit=500&access_token=${token}`;
+      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=from,message,message_tags,created_time,is_hidden&limit=500&access_token=${token}`;
       let allComments = [];
       let nextUrl = apiUrl;
 
@@ -629,6 +667,7 @@
         id: c.from ? c.from.id : Math.random().toString(36).slice(2),
         name: c.from ? c.from.name : '未知使用者',
         comment: c.message || '',
+        tagCount: c.message_tags ? c.message_tags.length : (c.message ? (c.message.match(/@/g) || []).length : 0),
         time: c.created_time || '',
         hidden: c.is_hidden || false,
         source: 'comment',
@@ -870,11 +909,11 @@
       });
     }
 
-    // Tag friends filter (count @ mentions)
+    // Tag friends filter (use message_tags from API, fallback to @ count)
     if (tagMin > 0) {
       list = list.filter((p) => {
-        const tagCount = (p.comment.match(/@/g) || []).length;
-        if (tagCount < tagMin) {
+        const tags = p.tagCount != null ? p.tagCount : (p.comment.match(/@/g) || []).length;
+        if (tags < tagMin) {
           excludedItems.push(p);
           return false;
         }
