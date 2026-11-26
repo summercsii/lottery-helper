@@ -248,31 +248,36 @@
     });
   }
 
-  function onFbTokenObtained(accessToken) {
+  async function onFbTokenObtained(accessToken) {
     const statusEl = $('#fbStatus');
-    if (typeof FB !== 'undefined') {
-      FB.api('/me', { fields: 'name', access_token: accessToken }, function (me) {
-        if (me && !me.error && statusEl) {
-          statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
-          statusEl.classList.add('fb-connected');
-        }
-      });
-      FB.api('/me/accounts', { fields: 'name,access_token,id', access_token: accessToken }, function (resp) {
-        if (resp.data && resp.data.length > 0) {
-          state.fbPages = resp.data;
-          showPagePicker(resp.data);
-        } else {
-          $('#accessToken').value = accessToken;
-          showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
-        }
-      });
-    } else {
-      $('#accessToken').value = accessToken;
-      showToast('已取得 Access Token。', 'success');
+
+    try {
+      const meResp = await fetch('https://graph.facebook.com/v21.0/me?fields=name&access_token=' + accessToken);
+      const me = await meResp.json();
+      if (me && !me.error && statusEl) {
+        statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
+        statusEl.classList.add('fb-connected');
+      }
+    } catch (e) {
       if (statusEl) {
         statusEl.textContent = '✓ 已取得 Token';
         statusEl.classList.add('fb-connected');
       }
+    }
+
+    try {
+      const acctResp = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=name,access_token,id&access_token=' + accessToken);
+      const acctData = await acctResp.json();
+      if (acctData.data && acctData.data.length > 0) {
+        state.fbPages = acctData.data;
+        showPagePicker(acctData.data);
+      } else {
+        $('#accessToken').value = accessToken;
+        showToast('已取得 User Token（無管理粉專權限，部分功能可能受限）。', 'info');
+      }
+    } catch (e) {
+      $('#accessToken').value = accessToken;
+      showToast('已取得 Access Token，但無法取得粉專列表。', 'info');
     }
   }
 
