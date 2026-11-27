@@ -1087,6 +1087,8 @@
       '#filterDuplicate',
       '#filterRepeatWinner',
       '#filterHidden',
+      '#filterExcludePage',
+      '#filterRequireImage',
       '#filterKeyword',
       '#filterTagMin',
       '#filterMinLength',
@@ -1110,6 +1112,8 @@
   function applyFilters() {
     const removeDuplicates = $('#filterDuplicate').checked;
     const removeHidden = $('#filterHidden').checked;
+    const excludePage = $('#filterExcludePage').checked;
+    const requireImage = $('#filterRequireImage').checked;
     const keyword = $('#filterKeyword').value.trim().toLowerCase();
     const tagMin = parseInt($('#filterTagMin').value) || 0;
     const minLength = parseInt($('#filterMinLength').value) || 0;
@@ -1120,6 +1124,29 @@
 
     let list = [...state.participants];
     const excludedItems = [];
+
+    // Exclude page's own comments
+    if (excludePage && state.fbPages && state.fbPages.length > 0) {
+      const pageIds = new Set(state.fbPages.map(function(p) { return p.id; }));
+      list = list.filter((p) => {
+        if (pageIds.has(p.id)) {
+          excludedItems.push(p);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Require attached image
+    if (requireImage) {
+      list = list.filter((p) => {
+        if (!p.commentImage) {
+          excludedItems.push(p);
+          return false;
+        }
+        return true;
+      });
+    }
 
     // Remove hidden
     if (removeHidden) {
@@ -1208,7 +1235,7 @@
         <div class="empty-state">
           <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" opacity="0.2"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
           <p>尚無資料</p>
-          <small>請先從左側匯入留言資料</small>
+          <small>請先從上方匯入留言資料</small>
         </div>`;
       $('#btnDraw').disabled = true;
       return;
@@ -1223,7 +1250,8 @@
         ${p.picture ? '<img class="p-avatar" src="' + escapeHtml(p.picture) + '" referrerpolicy="no-referrer" onerror="this.outerHTML=\'<div class=p-avatar>' + escapeHtml(p.name.charAt(0)) + '</div>\'">' : '<div class="p-avatar">' + escapeHtml(p.name.charAt(0)) + '</div>'}
         <span class="p-name">${escapeHtml(p.name)}</span>
         ${showTagBadge && p.tagCount != null ? '<span class="p-tag-badge" title="標記好友數">@' + p.tagCount + '</span>' : ''}
-        <span class="p-comment">${escapeHtml(p.comment)}${p.commentImage ? ' <img class="p-comment-img" src="' + escapeHtml(p.commentImage) + '" title="留言圖片">' : ''}</span>
+        <span class="p-comment">${escapeHtml(p.comment)}</span>
+        ${p.commentImage ? '<img class="p-comment-img" src="' + escapeHtml(p.commentImage) + '" title="留言附圖" referrerpolicy="no-referrer">' : ''}
       </div>`
       )
       .join('');
