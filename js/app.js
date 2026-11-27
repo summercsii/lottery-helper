@@ -251,7 +251,8 @@
 
     const reauthBtn = $('#btnReauth');
     if (!reauthBtn) return;
-    reauthBtn.addEventListener('click', () => {
+    reauthBtn.addEventListener('click', async () => {
+      const token = sessionStorage.getItem('fb_access_token') || $('#accessToken').value.trim();
       sessionStorage.removeItem('fb_access_token');
       $('#accessToken').value = '';
       const picker = $('#fbPagePicker');
@@ -262,7 +263,12 @@
       if (igPicker) igPicker.remove();
       state.fbPages = [];
       state.igAccountId = null;
-      window.location.href = getFbAuthUrl(true);
+      if (token) {
+        try {
+          await fetch('https://graph.facebook.com/v21.0/me/permissions?access_token=' + token, { method: 'DELETE' });
+        } catch (e) { /* ignore */ }
+      }
+      window.location.href = getFbAuthUrl(false);
     });
   }
 
