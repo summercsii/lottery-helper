@@ -240,7 +240,7 @@
       const authUrl = 'https://www.facebook.com/v21.0/dialog/oauth?' +
         'client_id=' + FB_APP_ID +
         '&redirect_uri=' + redirectUri +
-        '&scope=pages_show_list,pages_read_engagement,pages_read_user_content,instagram_business_basic,instagram_business_manage_comments' +
+        '&scope=pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments' +
         '&response_type=token';
       window.location.href = authUrl;
     });
