@@ -427,30 +427,44 @@
     }
   }
 
-  async function loadPagePosts() {
+  async function loadPagePosts(nextUrl) {
     const select = $('#fbPageSelect');
     if (!select) return;
     const token = select.value;
     const pageId = select.options[select.selectedIndex].dataset.pageId;
     const pageName = select.options[select.selectedIndex].text;
     const btn = $('#btnPickPost');
+    const loadMoreBtn = $('#btnLoadMorePosts');
+    const isLoadMore = !!nextUrl;
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 載入中...';
+    if (isLoadMore && loadMoreBtn) {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.innerHTML = '<span class="spinner"></span> 載入中...';
+    } else {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> 載入中...';
+    }
 
     try {
-      const apiUrl = 'https://graph.facebook.com/v21.0/' + pageId +
-        '/feed?fields=id,message,created_time,full_picture,permalink_url&limit=25&access_token=' + token;
+      const apiUrl = nextUrl || ('https://graph.facebook.com/v21.0/' + pageId +
+        '/feed?fields=id,message,created_time,full_picture,permalink_url&limit=25&access_token=' + token);
       const resp = await fetch(apiUrl);
       const data = await resp.json();
 
       if (data.error) throw new Error(data.error.message || '載入貼文失敗');
       if (!data.data || data.data.length === 0) {
-        showToast('此粉專目前沒有貼文。', 'info');
+        showToast('沒有更多貼文了。', 'info');
+        if (loadMoreBtn) loadMoreBtn.remove();
         return;
       }
 
-      showPostPicker(data.data, pageName);
+      const nextPageUrl = data.paging && data.paging.next ? data.paging.next : null;
+
+      if (isLoadMore) {
+        appendPostPicker(data.data, nextPageUrl);
+      } else {
+        showPostPicker(data.data, pageName, nextPageUrl);
+      }
     } catch (err) {
       showToast('載入貼文失敗：' + err.message, 'error');
     } finally {
@@ -461,7 +475,42 @@
     }
   }
 
-  function showPostPicker(posts, pageName) {
+  function formatPostDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function truncateText(text, max) {
+    if (!text) return '（無文字內容）';
+    return text.length > max ? text.substring(0, max) + '…' : text;
+  }
+
+  function buildPostItemHtml(p) {
+    return '<div class="post-item" data-post-id="' + p.id + '"' +
+      (p.permalink_url ? ' data-permalink="' + escapeHtml(p.permalink_url) + '"' : '') + '>' +
+      (p.full_picture ? '<img class="post-thumb" src="' + escapeHtml(p.full_picture) + '" alt="">' : '') +
+      '<div class="post-info">' +
+      '<div class="post-text">' + escapeHtml(truncateText(p.message, 80)) + '</div>' +
+      '<div class="post-date">' + formatPostDate(p.created_time) + '</div>' +
+      '</div></div>';
+  }
+
+  function bindPostItemClick(item) {
+    item.addEventListener('click', function () {
+      const wrapper = item.closest('.fb-post-picker');
+      if (wrapper) wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
+      item.classList.add('selected');
+      const postId = item.dataset.postId;
+      $('#postUrl').value = item.dataset.permalink || postId;
+      state._selectedPostId = postId;
+      state._selectedPostIsIg = false;
+      showToast('已選擇貼文，可直接點「抓留言」或「抓心情」。', 'success');
+    });
+  }
+
+  function showPostPicker(posts, pageName, nextPageUrl) {
     const existing = $('#fbPostPicker');
     if (existing) existing.remove();
 
@@ -469,30 +518,11 @@
     wrapper.id = 'fbPostPicker';
     wrapper.className = 'fb-post-picker';
 
-    const formatDate = function (iso) {
-      if (!iso) return '';
-      const d = new Date(iso);
-      return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
-        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    };
-
-    const truncate = function (text, max) {
-      if (!text) return '（無文字內容）';
-      return text.length > max ? text.substring(0, max) + '…' : text;
-    };
-
-    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的近期貼文</label>' +
-      '<div class="post-list">' +
-      posts.map(function (p) {
-        return '<div class="post-item" data-post-id="' + p.id + '"' +
-          (p.permalink_url ? ' data-permalink="' + escapeHtml(p.permalink_url) + '"' : '') + '>' +
-          (p.full_picture ? '<img class="post-thumb" src="' + escapeHtml(p.full_picture) + '" alt="">' : '') +
-          '<div class="post-info">' +
-          '<div class="post-text">' + escapeHtml(truncate(p.message, 80)) + '</div>' +
-          '<div class="post-date">' + formatDate(p.created_time) + '</div>' +
-          '</div></div>';
-      }).join('') +
-      '</div>';
+    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的貼文</label>' +
+      '<div class="post-list" id="postListContainer">' +
+      posts.map(buildPostItemHtml).join('') +
+      '</div>' +
+      (nextPageUrl ? '<button class="btn btn-sm btn-outline" id="btnLoadMorePosts" style="margin-top:8px;width:100%">載入更多貼文</button>' : '');
 
     const picker = $('#fbPagePicker');
     if (picker) {
@@ -502,47 +532,96 @@
       tokenGroup.appendChild(wrapper);
     }
 
-    wrapper.querySelectorAll('.post-item').forEach(function (item) {
-      item.addEventListener('click', function () {
-        wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
-        item.classList.add('selected');
-        const postId = item.dataset.postId;
-        $('#postUrl').value = item.dataset.permalink || postId;
-        state._selectedPostId = postId;
-        state._selectedPostIsIg = false;
-        showToast('已選擇貼文，可直接點「抓留言」或「抓心情」。', 'success');
-      });
-    });
+    wrapper.querySelectorAll('.post-item').forEach(bindPostItemClick);
+
+    if (nextPageUrl) {
+      const loadMoreBtn = $('#btnLoadMorePosts');
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function () {
+          loadPagePosts(nextPageUrl);
+        });
+      }
+    }
   }
 
-  async function loadIgPosts() {
+  function appendPostPicker(posts, nextPageUrl) {
+    const container = $('#postListContainer');
+    if (!container) return;
+
+    const fragment = document.createDocumentFragment();
+    const temp = document.createElement('div');
+    temp.innerHTML = posts.map(buildPostItemHtml).join('');
+    while (temp.firstChild) {
+      const item = temp.firstChild;
+      fragment.appendChild(item);
+    }
+    container.appendChild(fragment);
+    container.querySelectorAll('.post-item:not([data-bound])').forEach(function (item) {
+      item.dataset.bound = '1';
+      bindPostItemClick(item);
+    });
+
+    const oldBtn = $('#btnLoadMorePosts');
+    if (oldBtn) oldBtn.remove();
+
+    if (nextPageUrl) {
+      const wrapper = $('#fbPostPicker');
+      if (wrapper) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-outline';
+        btn.id = 'btnLoadMorePosts';
+        btn.style.cssText = 'margin-top:8px;width:100%';
+        btn.textContent = '載入更多貼文';
+        btn.addEventListener('click', function () {
+          loadPagePosts(nextPageUrl);
+        });
+        wrapper.appendChild(btn);
+      }
+    }
+  }
+
+  async function loadIgPosts(nextUrl) {
     const select = $('#fbPageSelect');
     if (!select) return;
     const token = select.value;
     const pageName = select.options[select.selectedIndex].text;
     const btn = $('#btnPickPost');
+    const loadMoreBtn = $('#btnLoadMorePosts');
+    const isLoadMore = !!nextUrl;
 
-    if (!state.igAccountId) {
+    if (!isLoadMore && !state.igAccountId) {
       showToast('此粉專尚未綁定 Instagram 商業帳號，請先至 Meta Business Suite 連結。', 'warning');
       return;
     }
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 載入中...';
+    if (isLoadMore && loadMoreBtn) {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.innerHTML = '<span class="spinner"></span> 載入中...';
+    } else {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> 載入中...';
+    }
 
     try {
-      const apiUrl = 'https://graph.facebook.com/v21.0/' + state.igAccountId +
-        '/media?fields=id,shortcode,caption,timestamp,permalink,media_url,media_type,thumbnail_url&limit=25&access_token=' + token;
+      const apiUrl = nextUrl || ('https://graph.facebook.com/v21.0/' + state.igAccountId +
+        '/media?fields=id,shortcode,caption,timestamp,permalink,media_url,media_type,thumbnail_url&limit=25&access_token=' + token);
       const resp = await fetch(apiUrl);
       const data = await resp.json();
 
       if (data.error) throw new Error(data.error.message || '載入 IG 貼文失敗');
       if (!data.data || data.data.length === 0) {
-        showToast('此 IG 帳號目前沒有貼文。', 'info');
+        showToast('沒有更多貼文了。', 'info');
+        if (loadMoreBtn) loadMoreBtn.remove();
         return;
       }
 
-      showIgPostPicker(data.data, pageName);
+      const nextPageUrl = data.paging && data.paging.next ? data.paging.next : null;
+
+      if (isLoadMore) {
+        appendIgPostPicker(data.data, nextPageUrl);
+      } else {
+        showIgPostPicker(data.data, pageName, nextPageUrl);
+      }
     } catch (err) {
       showToast('載入 IG 貼文失敗：' + err.message, 'error');
     } finally {
@@ -553,7 +632,33 @@
     }
   }
 
-  function showIgPostPicker(posts, pageName) {
+  function buildIgPostItemHtml(p) {
+    const thumb = p.media_type === 'VIDEO' ? (p.thumbnail_url || '') : (p.media_url || '');
+    const typeLabel = p.media_type === 'VIDEO' ? ' 🎬' : (p.media_type === 'CAROUSEL_ALBUM' ? ' 📸' : '');
+    return '<div class="post-item" data-post-id="' + p.id + '"' +
+      (p.permalink ? ' data-permalink="' + escapeHtml(p.permalink) + '"' : '') +
+      (p.shortcode ? ' data-shortcode="' + escapeHtml(p.shortcode) + '"' : '') + '>' +
+      (thumb ? '<img class="post-thumb" src="' + escapeHtml(thumb) + '" alt="">' : '') +
+      '<div class="post-info">' +
+      '<div class="post-text">' + escapeHtml(truncateText(p.caption, 80)) + typeLabel + '</div>' +
+      '<div class="post-date">' + formatPostDate(p.timestamp) + '</div>' +
+      '</div></div>';
+  }
+
+  function bindIgPostItemClick(item) {
+    item.addEventListener('click', function () {
+      const wrapper = item.closest('.fb-post-picker');
+      if (wrapper) wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
+      item.classList.add('selected');
+      const postId = item.dataset.postId;
+      $('#postUrl').value = item.dataset.permalink || postId;
+      state._selectedPostId = postId;
+      state._selectedPostIsIg = true;
+      showToast('已選擇 IG 貼文，可直接點「抓留言」。', 'success');
+    });
+  }
+
+  function showIgPostPicker(posts, pageName, nextPageUrl) {
     const existing = $('#fbPostPicker');
     if (existing) existing.remove();
 
@@ -561,33 +666,11 @@
     wrapper.id = 'fbPostPicker';
     wrapper.className = 'fb-post-picker';
 
-    const formatDate = function (iso) {
-      if (!iso) return '';
-      const d = new Date(iso);
-      return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
-        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    };
-
-    const truncate = function (text, max) {
-      if (!text) return '（無文字內容）';
-      return text.length > max ? text.substring(0, max) + '…' : text;
-    };
-
-    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的 IG 近期貼文</label>' +
-      '<div class="post-list">' +
-      posts.map(function (p) {
-        const thumb = p.media_type === 'VIDEO' ? (p.thumbnail_url || '') : (p.media_url || '');
-        const typeLabel = p.media_type === 'VIDEO' ? ' 🎬' : (p.media_type === 'CAROUSEL_ALBUM' ? ' 📸' : '');
-        return '<div class="post-item" data-post-id="' + p.id + '"' +
-          (p.permalink ? ' data-permalink="' + escapeHtml(p.permalink) + '"' : '') +
-          (p.shortcode ? ' data-shortcode="' + escapeHtml(p.shortcode) + '"' : '') + '>' +
-          (thumb ? '<img class="post-thumb" src="' + escapeHtml(thumb) + '" alt="">' : '') +
-          '<div class="post-info">' +
-          '<div class="post-text">' + escapeHtml(truncate(p.caption, 80)) + typeLabel + '</div>' +
-          '<div class="post-date">' + formatDate(p.timestamp) + '</div>' +
-          '</div></div>';
-      }).join('') +
-      '</div>';
+    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的 IG 貼文</label>' +
+      '<div class="post-list" id="postListContainer">' +
+      posts.map(buildIgPostItemHtml).join('') +
+      '</div>' +
+      (nextPageUrl ? '<button class="btn btn-sm btn-outline" id="btnLoadMorePosts" style="margin-top:8px;width:100%">載入更多貼文</button>' : '');
 
     const picker = $('#fbPagePicker');
     if (picker) {
@@ -597,17 +680,47 @@
       tokenGroup.appendChild(wrapper);
     }
 
-    wrapper.querySelectorAll('.post-item').forEach(function (item) {
-      item.addEventListener('click', function () {
-        wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
-        item.classList.add('selected');
-        const postId = item.dataset.postId;
-        $('#postUrl').value = item.dataset.permalink || postId;
-        state._selectedPostId = postId;
-        state._selectedPostIsIg = true;
-        showToast('已選擇 IG 貼文，可直接點「抓留言」。', 'success');
-      });
-    });
+    wrapper.querySelectorAll('.post-item').forEach(bindIgPostItemClick);
+
+    if (nextPageUrl) {
+      const loadMoreBtn = $('#btnLoadMorePosts');
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function () {
+          loadIgPosts(nextPageUrl);
+        });
+      }
+    }
+  }
+
+  function appendIgPostPicker(posts, nextPageUrl) {
+    const container = $('#postListContainer');
+    if (!container) return;
+
+    const temp = document.createElement('div');
+    temp.innerHTML = posts.map(buildIgPostItemHtml).join('');
+    while (temp.firstChild) {
+      const item = temp.firstChild;
+      container.appendChild(item);
+      bindIgPostItemClick(item);
+    }
+
+    const oldBtn = $('#btnLoadMorePosts');
+    if (oldBtn) oldBtn.remove();
+
+    if (nextPageUrl) {
+      const wrapper = $('#fbPostPicker');
+      if (wrapper) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-outline';
+        btn.id = 'btnLoadMorePosts';
+        btn.style.cssText = 'margin-top:8px;width:100%';
+        btn.textContent = '載入更多貼文';
+        btn.addEventListener('click', function () {
+          loadIgPosts(nextPageUrl);
+        });
+        wrapper.appendChild(btn);
+      }
+    }
   }
 
   // ---- Platform Tabs ----
@@ -1367,7 +1480,7 @@
     slotInner.style.transition = 'none';
 
     // Record winner
-    allWinners.push({ prize: prize.name, name: winner.name, comment: winner.comment, picture: winner.picture || '' });
+    allWinners.push({ prize: prize.name, name: winner.name, comment: winner.comment, picture: winner.picture || '', commentImage: winner.commentImage || '' });
 
     // Remove from pool
     if ($('#filterRepeatWinner').checked) {
@@ -1421,10 +1534,16 @@
         const avatarHtml = w.picture
           ? `<img class="rw-avatar" src="${escapeHtml(w.picture)}" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=rw-avatar>' + '${escapeHtml(w.name.charAt(0))}' + '</div>'">`
           : `<div class="rw-avatar">${escapeHtml(w.name.charAt(0))}</div>`;
+        const commentHtml = w.comment ? `<span class="rw-comment">${escapeHtml(w.comment)}</span>` : '';
+        const imgHtml = w.commentImage ? `<img class="rw-comment-img" src="${escapeHtml(w.commentImage)}" referrerpolicy="no-referrer" title="留言附圖">` : '';
         html += `<div class="result-winner" style="animation-delay:${i * 0.1}s">
           <div class="rw-rank">${i + 1}</div>
           ${avatarHtml}
-          <span class="rw-name">${escapeHtml(w.name)}</span>
+          <div class="rw-info">
+            <span class="rw-name">${escapeHtml(w.name)}</span>
+            ${commentHtml}
+          </div>
+          ${imgHtml}
         </div>`;
       });
       html += '</div>';
