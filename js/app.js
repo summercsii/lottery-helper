@@ -841,6 +841,16 @@
           showToast('無法解析貼文 ID', 'error');
           return;
         }
+
+        try {
+          const dtResp = await fetch('https://graph.facebook.com/v21.0/debug_token?input_token=' + token + '&access_token=' + token);
+          const dtData = await dtResp.json();
+          console.log('[FB DEBUG] Token type:', dtData && dtData.data ? dtData.data.type : 'unknown');
+          console.log('[FB DEBUG] Token scopes:', dtData && dtData.data ? JSON.stringify(dtData.data.scopes) : 'N/A');
+          console.log('[FB DEBUG] Token profile_id:', dtData && dtData.data ? dtData.data.profile_id : 'N/A');
+        } catch(e) { console.warn('[FB DEBUG] debug_token failed:', e); }
+
+        console.log('[FB DEBUG] postId:', postId);
         const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from{id,name,picture},message,message_tags,created_time,is_hidden,attachment&limit=500&access_token=${token}`;
         let allComments = [];
         let nextUrl = apiUrl;
@@ -877,6 +887,13 @@
             source: 'comment',
           };
         });
+
+        if (allComments.length > 0) {
+          console.log('[FB DEBUG] 第一筆留言原始資料:', JSON.stringify(allComments[0]));
+          console.log('[FB DEBUG] 有 from 的留言數:', allComments.filter(c => c.from).length, '/', allComments.length);
+          const withFrom = allComments.find(c => c.from);
+          if (withFrom) console.log('[FB DEBUG] 有 from 的範例:', JSON.stringify(withFrom.from));
+        }
 
         const withPic = state.participants.filter(p => p.picture).length;
         console.log('[FB] 留言大頭貼統計: 共 ' + state.participants.length + ' 筆, 有大頭貼 ' + withPic + ' 筆, 無大頭貼 ' + (state.participants.length - withPic) + ' 筆');
