@@ -59,7 +59,6 @@
         const user = JSON.parse(saved);
         if (user && user.email && isDomainAllowed(user.email)) {
           onLoginSuccess(user);
-          return;
         }
       }
     } catch (e) {}
@@ -176,8 +175,10 @@
 
       if (typeof google !== 'undefined' && google.accounts) {
         google.accounts.id.disableAutoSelect();
-        renderGoogleButton();
       }
+      // Always render (and wait for GIS if needed). A restored session may
+      // have skipped rendering the button before the user logs out.
+      renderGoogleButton();
     });
   }
 
