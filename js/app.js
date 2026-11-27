@@ -879,6 +879,9 @@
           };
         });
 
+        const withPic = state.participants.filter(p => p.picture).length;
+        console.log('[FB] 留言大頭貼統計: 共 ' + state.participants.length + ' 筆, 有大頭貼 ' + withPic + ' 筆, 無大頭貼 ' + (state.participants.length - withPic) + ' 筆');
+
         applyFilters();
         renderParticipants();
         showToast(`成功抓取 ${allComments.length} 筆留言！`, 'success');
