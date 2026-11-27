@@ -392,16 +392,16 @@
     wrapper.className = 'fb-page-picker';
 
     const pagesHtml = pages.map(function (p, i) {
-      const pic = escapeHtml(getPagePicUrl(p));
-      return '<div class="page-option' + (i === 0 ? ' selected' : '') + '" data-index="' + i + '">' +
-        '<img class="page-option-pic" src="' + pic + '" alt="" referrerpolicy="no-referrer">' +
-        '<span class="page-option-name">' + escapeHtml(p.name) + '</span>' +
-        '</div>';
+      return '<option value="' + i + '">' + escapeHtml(p.name) + '</option>';
     }).join('');
+    const firstPic = escapeHtml(getPagePicUrl(pages[0]));
 
     wrapper.innerHTML = '<label>選擇粉絲專頁</label>' +
       '<div class="page-picker-row">' +
-      '<div class="page-options" id="fbPageSelect">' + pagesHtml + '</div>' +
+      '<div class="page-select-wrap">' +
+      '<img class="page-select-pic" id="fbSelectedPagePic" src="' + firstPic + '" alt="" referrerpolicy="no-referrer">' +
+      '<select class="input page-select" id="fbPageSelect" aria-label="選擇粉絲專頁">' + pagesHtml + '</select>' +
+      '</div>' +
       '<button class="btn btn-sm btn-outline" id="btnPickPost" title="選擇此粉專的貼文">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' +
       ' 選擇貼文</button>' +
@@ -415,18 +415,15 @@
 
     fetchIgAccountId(pages[0].id, pages[0].access_token);
 
-    wrapper.querySelectorAll('.page-option').forEach(function (el) {
-      el.addEventListener('click', function () {
-        wrapper.querySelectorAll('.page-option.selected').forEach(function (s) { s.classList.remove('selected'); });
-        el.classList.add('selected');
-        const idx = parseInt(el.dataset.index);
-        const page = pages[idx];
-        $('#accessToken').value = page.access_token;
-        const existingPostPicker = $('#fbPostPicker');
-        if (existingPostPicker) existingPostPicker.remove();
-        fetchIgAccountId(page.id, page.access_token);
-        showToast('已切換至「' + page.name + '」的 Token。', 'info');
-      });
+    $('#fbPageSelect').addEventListener('change', function () {
+      const page = pages[parseInt(this.value, 10)];
+      if (!page) return;
+      $('#fbSelectedPagePic').src = getPagePicUrl(page);
+      $('#accessToken').value = page.access_token;
+      const existingPostPicker = $('#fbPostPicker');
+      if (existingPostPicker) existingPostPicker.remove();
+      fetchIgAccountId(page.id, page.access_token);
+      showToast('已切換至「' + page.name + '」的 Token。', 'info');
     });
 
     $('#btnPickPost').addEventListener('click', function () {
@@ -470,9 +467,9 @@
   }
 
   function getSelectedPage() {
-    const el = document.querySelector('#fbPageSelect .page-option.selected');
-    if (!el) return null;
-    const idx = parseInt(el.dataset.index);
+    const el = $('#fbPageSelect');
+    if (!el || !el.value) return null;
+    const idx = parseInt(el.value, 10);
     return state.fbPages[idx] || null;
   }
 
