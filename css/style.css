@@ -80,7 +80,7 @@ input, textarea, select { font-family: inherit; }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.logo-icon { flex-shrink: 0; border-radius: 6px; }
+.logo-icon { flex-shrink: 0; border-radius: 50%; background: #fff; }
 .nav-tabs {
   display: flex;
   gap: 4px;
