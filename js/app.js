@@ -403,12 +403,26 @@
       if (data.instagram_business_account) {
         state.igAccountId = data.instagram_business_account.id;
         console.log('[IG] Connected IG account:', state.igAccountId);
+        try {
+          const profileResp = await fetch('https://graph.facebook.com/v21.0/' + state.igAccountId + '?fields=username,profile_picture_url&access_token=' + token);
+          const profileData = await profileResp.json();
+          state.igAccountUsername = profileData.username || null;
+          state.igAccountPicture = profileData.profile_picture_url || '';
+          console.log('[IG] Account username:', state.igAccountUsername);
+        } catch (_e) {
+          state.igAccountUsername = null;
+          state.igAccountPicture = '';
+        }
       } else {
         state.igAccountId = null;
+        state.igAccountUsername = null;
+        state.igAccountPicture = '';
         console.log('[IG] No IG business account connected to this page');
       }
     } catch (e) {
       state.igAccountId = null;
+      state.igAccountUsername = null;
+      state.igAccountPicture = '';
       console.error('[IG] Failed to get IG account:', e);
     }
   }
@@ -803,10 +817,11 @@
         }
 
         state.participants = allComments.map((c) => {
+          const isOwner = state.igAccountUsername && c.username === state.igAccountUsername;
           return {
             id: c.id || Math.random().toString(36).slice(2),
             name: c.username || '匿名用戶',
-            picture: '',
+            picture: isOwner ? (state.igAccountPicture || '') : '',
             comment: c.text || '',
             commentImage: '',
             tagCount: c.text ? (c.text.match(/@/g) || []).length : 0,
@@ -852,7 +867,7 @@
           return {
             id: uid,
             name: c.from && c.from.name ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
-            picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small' : ''),
+            picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small&access_token=' + token : ''),
             comment: c.message || '',
             commentImage: attachImg ? attachImg.src : '',
             tagCount: c.message_tags
