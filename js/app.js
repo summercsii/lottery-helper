@@ -23,6 +23,7 @@
     prizes: [{ name: '獎品 1', count: 1 }],
     user: null,
   };
+  let googleIdentityInitialized = false;
 
   // ---- DOM Refs ----
   const $ = (sel) => document.querySelector(sel);
@@ -74,19 +75,30 @@
   }
 
   function renderGoogleButton() {
+    if (window.location.protocol === 'file:') {
+      showLoginError('請從正式網站 https://summercsii.github.io/lottery-helper/ 開啟，直接開啟電腦中的 HTML 檔案無法使用 Google 登入。');
+      return;
+    }
+
     if (typeof google === 'undefined' || !google.accounts) {
       setTimeout(renderGoogleButton, 500);
       return;
     }
 
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredential,
-      auto_select: false,
-    });
+    if (!googleIdentityInitialized) {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+        auto_select: false,
+      });
+      googleIdentityInitialized = true;
+    }
 
+    const buttonContainer = $('#googleSignInBtn');
+    if (!buttonContainer) return;
+    buttonContainer.replaceChildren();
     google.accounts.id.renderButton(
-      $('#googleSignInBtn'),
+      buttonContainer,
       {
         theme: 'outline',
         size: 'large',
@@ -164,6 +176,7 @@
 
       if (typeof google !== 'undefined' && google.accounts) {
         google.accounts.id.disableAutoSelect();
+        renderGoogleButton();
       }
     });
   }
