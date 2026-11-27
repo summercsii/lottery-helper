@@ -275,9 +275,17 @@ input, textarea, select { font-family: inherit; }
 .fb-status.fb-connected { color: #16a34a; font-weight: 500; }
 .fb-page-picker { margin-top: 8px; }
 .fb-page-picker label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-secondary); }
-.fb-page-picker select { width: 100%; }
 .page-picker-row { display: flex; gap: 6px; align-items: stretch; }
-.page-picker-row select { flex: 1; min-width: 0; }
+.page-options { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.page-option {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; transition: all .2s; background: var(--bg);
+}
+.page-option:hover { border-color: var(--primary); background: rgba(37,99,235,.04); }
+.page-option.selected { border-color: var(--primary); background: rgba(37,99,235,.08); box-shadow: 0 0 0 1px var(--primary); }
+.page-option-pic { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.page-option-name { font-size: .85rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btn-sm { padding: 6px 10px; font-size: .78rem; white-space: nowrap; }
 .btn-outline {
   background: var(--bg); border: 1px solid var(--border);

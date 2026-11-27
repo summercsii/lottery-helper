@@ -345,7 +345,7 @@
     }
 
     try {
-      const acctResp = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=name,access_token,id&access_token=' + accessToken);
+      const acctResp = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=name,access_token,id,picture{url}&access_token=' + accessToken);
       const acctData = await acctResp.json();
       console.log('[FB] /me/accounts response:', JSON.stringify(acctData).substring(0, 500));
       if (acctData.data && acctData.data.length > 0) {
@@ -372,6 +372,11 @@
     }
   }
 
+  function getPagePicUrl(page) {
+    if (page.picture && page.picture.data && page.picture.data.url) return page.picture.data.url;
+    return 'https://graph.facebook.com/' + page.id + '/picture?type=small';
+  }
+
   function showPagePicker(pages) {
     const existing = $('#fbPagePicker');
     if (existing) existing.remove();
@@ -379,13 +384,18 @@
     const wrapper = document.createElement('div');
     wrapper.id = 'fbPagePicker';
     wrapper.className = 'fb-page-picker';
+
+    const pagesHtml = pages.map(function (p, i) {
+      const pic = escapeHtml(getPagePicUrl(p));
+      return '<div class="page-option' + (i === 0 ? ' selected' : '') + '" data-index="' + i + '">' +
+        '<img class="page-option-pic" src="' + pic + '" alt="" referrerpolicy="no-referrer">' +
+        '<span class="page-option-name">' + escapeHtml(p.name) + '</span>' +
+        '</div>';
+    }).join('');
+
     wrapper.innerHTML = '<label>選擇粉絲專頁</label>' +
       '<div class="page-picker-row">' +
-      '<select class="input" id="fbPageSelect">' +
-      pages.map(function (p) {
-        return '<option value="' + p.access_token + '" data-page-id="' + p.id + '">' + p.name + '</option>';
-      }).join('') +
-      '</select>' +
+      '<div class="page-options" id="fbPageSelect">' + pagesHtml + '</div>' +
       '<button class="btn btn-sm btn-outline" id="btnPickPost" title="選擇此粉專的貼文">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' +
       ' 選擇貼文</button>' +
@@ -394,19 +404,23 @@
     const tokenGroup = $('#accessToken').closest('.form-group');
     tokenGroup.appendChild(wrapper);
 
-    const select = $('#fbPageSelect');
     $('#accessToken').value = pages[0].access_token;
     showToast('已取得粉專 Page Token，可直接抓取留言！', 'success');
 
     fetchIgAccountId(pages[0].id, pages[0].access_token);
 
-    select.addEventListener('change', function () {
-      $('#accessToken').value = this.value;
-      const pageId = this.options[this.selectedIndex].dataset.pageId;
-      const existingPostPicker = $('#fbPostPicker');
-      if (existingPostPicker) existingPostPicker.remove();
-      fetchIgAccountId(pageId, this.value);
-      showToast('已切換至「' + this.options[this.selectedIndex].text + '」的 Token。', 'info');
+    wrapper.querySelectorAll('.page-option').forEach(function (el) {
+      el.addEventListener('click', function () {
+        wrapper.querySelectorAll('.page-option.selected').forEach(function (s) { s.classList.remove('selected'); });
+        el.classList.add('selected');
+        const idx = parseInt(el.dataset.index);
+        const page = pages[idx];
+        $('#accessToken').value = page.access_token;
+        const existingPostPicker = $('#fbPostPicker');
+        if (existingPostPicker) existingPostPicker.remove();
+        fetchIgAccountId(page.id, page.access_token);
+        showToast('已切換至「' + page.name + '」的 Token。', 'info');
+      });
     });
 
     $('#btnPickPost').addEventListener('click', function () {
