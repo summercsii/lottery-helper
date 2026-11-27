@@ -469,12 +469,19 @@
     }
   }
 
+  function getSelectedPage() {
+    const el = document.querySelector('#fbPageSelect .page-option.selected');
+    if (!el) return null;
+    const idx = parseInt(el.dataset.index);
+    return state.fbPages[idx] || null;
+  }
+
   async function loadPagePosts(nextUrl) {
-    const select = $('#fbPageSelect');
-    if (!select) return;
-    const token = select.value;
-    const pageId = select.options[select.selectedIndex].dataset.pageId;
-    const pageName = select.options[select.selectedIndex].text;
+    const page = getSelectedPage();
+    if (!page) return;
+    const token = page.access_token;
+    const pageId = page.id;
+    const pageName = page.name;
     const btn = $('#btnPickPost');
     const loadMoreBtn = $('#btnLoadMorePosts');
     const isLoadMore = !!nextUrl;
@@ -623,10 +630,10 @@
   }
 
   async function loadIgPosts(nextUrl) {
-    const select = $('#fbPageSelect');
-    if (!select) return;
-    const token = select.value;
-    const pageName = select.options[select.selectedIndex].text;
+    const page = getSelectedPage();
+    if (!page) return;
+    const token = page.access_token;
+    const pageName = page.name;
     const btn = $('#btnPickPost');
     const loadMoreBtn = $('#btnLoadMorePosts');
     const isLoadMore = !!nextUrl;
