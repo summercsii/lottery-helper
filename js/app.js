@@ -643,7 +643,7 @@
         showToast('無法解析貼文 ID', 'error');
         return;
       }
-      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from,message,message_tags,created_time,is_hidden&limit=500&access_token=${token}`;
+      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from{id,name,picture},message,message_tags,created_time,is_hidden,attachment&limit=500&access_token=${token}`;
       let allComments = [];
       let nextUrl = apiUrl;
 
@@ -662,17 +662,24 @@
         nextUrl = data.paging && data.paging.next ? data.paging.next : null;
       }
 
-      state.participants = allComments.map((c) => ({
-        id: c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2)),
-        name: c.from ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
-        comment: c.message || '',
-        tagCount: c.message_tags
-          ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
-          : (c.message ? (c.message.match(/@/g) || []).length : 0),
-        time: c.created_time || '',
-        hidden: c.is_hidden || false,
-        source: 'comment',
-      }));
+      state.participants = allComments.map((c) => {
+        const uid = c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2));
+        const picData = c.from && c.from.picture && c.from.picture.data;
+        const attachImg = c.attachment && c.attachment.media && c.attachment.media.image;
+        return {
+          id: uid,
+          name: c.from && c.from.name ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
+          picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small' : ''),
+          comment: c.message || '',
+          commentImage: attachImg ? attachImg.src : '',
+          tagCount: c.message_tags
+            ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
+            : (c.message ? (c.message.match(/@/g) || []).length : 0),
+          time: c.created_time || '',
+          hidden: c.is_hidden || false,
+          source: 'comment',
+        };
+      });
 
       applyFilters();
       renderParticipants();
@@ -973,10 +980,10 @@
         (p, i) => `
       <div class="participant-item">
         <span class="p-index">${i + 1}</span>
-        <div class="p-avatar">${p.name.charAt(0)}</div>
+        ${p.picture ? '<img class="p-avatar" src="' + escapeHtml(p.picture) + '" referrerpolicy="no-referrer" onerror="this.outerHTML=\'<div class=p-avatar>' + escapeHtml(p.name.charAt(0)) + '</div>\'">' : '<div class="p-avatar">' + escapeHtml(p.name.charAt(0)) + '</div>'}
         <span class="p-name">${escapeHtml(p.name)}</span>
         ${showTagBadge && p.tagCount != null ? '<span class="p-tag-badge" title="標記好友數">@' + p.tagCount + '</span>' : ''}
-        <span class="p-comment">${escapeHtml(p.comment)}</span>
+        <span class="p-comment">${escapeHtml(p.comment)}${p.commentImage ? ' <img class="p-comment-img" src="' + escapeHtml(p.commentImage) + '" title="留言圖片">' : ''}</span>
       </div>`
       )
       .join('');

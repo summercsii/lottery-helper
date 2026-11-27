@@ -493,7 +493,9 @@ input, textarea, select { font-family: inherit; }
   font-weight: 700;
   font-size: .8rem;
   flex-shrink: 0;
+  object-fit: cover;
 }
+img.p-avatar { background: none; }
 .participant-item .p-name { font-weight: 500; color: var(--text); flex: 1; }
 .participant-item .p-comment {
   color: var(--text-muted);
@@ -502,6 +504,14 @@ input, textarea, select { font-family: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.p-comment-img {
+  width: 20px; height: 20px;
+  object-fit: cover;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 4px;
+  cursor: pointer;
 }
 .participant-item.excluded {
   opacity: .4;
