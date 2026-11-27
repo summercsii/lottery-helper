@@ -237,11 +237,9 @@
     if (!btn) return;
     btn.addEventListener('click', () => {
       const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-      const scope = 'pages_show_list,pages_read_engagement,pages_read_user_content';
       const authUrl = 'https://www.facebook.com/v21.0/dialog/oauth?' +
         'client_id=' + FB_APP_ID +
         '&redirect_uri=' + redirectUri +
-        '&scope=' + scope +
         '&response_type=token';
       window.location.href = authUrl;
     });
