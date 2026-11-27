@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261127q">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="apple-touch-icon" href="img/favicon.png">
+  <link rel="stylesheet" href="css/style.css?v=20261127r">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/zh_TW/sdk.js"></script>
 </head>
@@ -18,7 +20,7 @@
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <div class="login-logo">
-        <svg viewBox="0 0 32 32" width="48" height="48"><circle cx="16" cy="16" r="15" fill="#2563eb" opacity=".15"/><path d="M16 4a2 2 0 0 1 2 2v3.17a7 7 0 0 1 4.83 4.83H26a2 2 0 1 1 0 4h-3.17A7 7 0 0 1 18 22.83V26a2 2 0 1 1-4 0v-3.17A7 7 0 0 1 9.17 18H6a2 2 0 1 1 0-4h3.17A7 7 0 0 1 14 9.17V6a2 2 0 0 1 2-2zm0 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="#2563eb"/></svg>
+        <img src="img/logo.webp" alt="千享國際企業" class="login-logo-img">
         <h1>千享抽獎小幫手</h1>
         <p>Facebook / Instagram 抽獎工具</p>
       </div>
@@ -37,7 +39,7 @@
   <header class="header">
     <div class="header-inner">
       <a href="#" class="logo">
-        <svg class="logo-icon" viewBox="0 0 32 32" width="28" height="28"><circle cx="16" cy="16" r="15" fill="#fff" opacity=".15"/><path d="M16 4a2 2 0 0 1 2 2v3.17a7 7 0 0 1 4.83 4.83H26a2 2 0 1 1 0 4h-3.17A7 7 0 0 1 18 22.83V26a2 2 0 1 1-4 0v-3.17A7 7 0 0 1 9.17 18H6a2 2 0 1 1 0-4h3.17A7 7 0 0 1 14 9.17V6a2 2 0 0 1 2-2zm0 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="#fff"/></svg>
+        <img src="img/favicon.png" alt="千享" class="logo-icon" width="28" height="28">
         <span>千享抽獎小幫手</span>
       </a>
       <nav class="nav-tabs">
@@ -106,6 +108,10 @@
                     <button class="btn btn-fb-login" id="btnFbLogin">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                       用 Facebook 登入取得
+                    </button>
+                    <button class="btn btn-reauth hidden" id="btnReauth" title="清除目前授權並重新登入 Facebook">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                      重新授權
                     </button>
                     <span class="fb-status" id="fbStatus"></span>
                   </div>
@@ -392,6 +398,6 @@
     <p>&copy; 2026 千享抽獎小幫手 — 自產自銷工具</p>
   </footer>
 
-  <script src="js/app.js?v=20261127q"></script>
+  <script src="js/app.js?v=20261127r"></script>
 </body>
 </html>

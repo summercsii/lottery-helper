@@ -80,7 +80,7 @@ input, textarea, select { font-family: inherit; }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.logo-icon { flex-shrink: 0; }
+.logo-icon { flex-shrink: 0; border-radius: 6px; }
 .nav-tabs {
   display: flex;
   gap: 4px;
@@ -262,6 +262,15 @@ input, textarea, select { font-family: inherit; }
 }
 .btn-fb-login:hover { background: #166fe5; }
 .btn-fb-login svg { flex-shrink: 0; }
+.btn-reauth {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text-secondary); font-size: .78rem; font-weight: 500;
+  cursor: pointer; transition: all .2s;
+}
+.btn-reauth:hover { border-color: #1877f2; color: #1877f2; background: rgba(24,119,242,.06); }
+.btn-reauth svg { flex-shrink: 0; }
+.btn-reauth.hidden { display: none; }
 .fb-status { font-size: .8rem; color: var(--text-muted); }
 .fb-status.fb-connected { color: #16a34a; font-weight: 500; }
 .fb-page-picker { margin-top: 8px; }
@@ -798,6 +807,10 @@ img.rw-avatar { background: none; }
   padding: 40px 32px 24px;
   background: #f8fafc;
   border-bottom: 1px solid var(--border);
+}
+.login-logo-img {
+  max-width: 260px;
+  height: auto;
 }
 .login-logo h1 {
   font-size: 1.5rem;

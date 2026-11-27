@@ -232,17 +232,37 @@
     observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
   }
 
+  function getFbAuthUrl(reauth) {
+    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+    return 'https://www.facebook.com/v21.0/dialog/oauth?' +
+      'client_id=' + FB_APP_ID +
+      '&redirect_uri=' + redirectUri +
+      '&scope=pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments' +
+      '&response_type=token' +
+      (reauth ? '&auth_type=rerequest' : '');
+  }
+
   function bindFbLogin() {
     const btn = $('#btnFbLogin');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-      const authUrl = 'https://www.facebook.com/v21.0/dialog/oauth?' +
-        'client_id=' + FB_APP_ID +
-        '&redirect_uri=' + redirectUri +
-        '&scope=pages_show_list,pages_read_engagement,pages_read_user_content,instagram_basic,instagram_manage_comments' +
-        '&response_type=token';
-      window.location.href = authUrl;
+      window.location.href = getFbAuthUrl(false);
+    });
+
+    const reauthBtn = $('#btnReauth');
+    if (!reauthBtn) return;
+    reauthBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('fb_access_token');
+      $('#accessToken').value = '';
+      const picker = $('#fbPagePicker');
+      if (picker) picker.remove();
+      const postPicker = $('#fbPostPicker');
+      if (postPicker) postPicker.remove();
+      const igPicker = $('#igPostPicker');
+      if (igPicker) igPicker.remove();
+      state.fbPages = [];
+      state.igAccountId = null;
+      window.location.href = getFbAuthUrl(true);
     });
   }
 
@@ -304,6 +324,8 @@
       if (me && !me.error && statusEl) {
         statusEl.textContent = '✓ 已登入：' + (me.name || 'Facebook');
         statusEl.classList.add('fb-connected');
+        const reauthBtn = $('#btnReauth');
+        if (reauthBtn) reauthBtn.classList.remove('hidden');
       } else if (me && me.error) {
         console.error('[FB] /me error:', me.error.message);
         if (statusEl) {
