@@ -862,12 +862,11 @@
 
         state.participants = allComments.map((c) => {
           const uid = c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2));
-          const picData = c.from && c.from.picture && c.from.picture.data;
           const attachImg = c.attachment && c.attachment.media && c.attachment.media.image;
           return {
             id: uid,
             name: c.from && c.from.name ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
-            picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small&access_token=' + token : ''),
+            picture: c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small&access_token=' + token : '',
             comment: c.message || '',
             commentImage: attachImg ? attachImg.src : '',
             tagCount: c.message_tags
