@@ -1320,7 +1320,7 @@
     slotInner.style.transition = 'none';
 
     // Record winner
-    allWinners.push({ prize: prize.name, name: winner.name, comment: winner.comment });
+    allWinners.push({ prize: prize.name, name: winner.name, comment: winner.comment, picture: winner.picture || '' });
 
     // Remove from pool
     if ($('#filterRepeatWinner').checked) {
@@ -1371,8 +1371,12 @@
       html += `<div class="result-prize">
         <div class="result-prize-title">🏆 ${escapeHtml(prizeName)}</div>`;
       winners.forEach((w, i) => {
+        const avatarHtml = w.picture
+          ? `<img class="rw-avatar" src="${escapeHtml(w.picture)}" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=rw-avatar>' + '${escapeHtml(w.name.charAt(0))}' + '</div>'">`
+          : `<div class="rw-avatar">${escapeHtml(w.name.charAt(0))}</div>`;
         html += `<div class="result-winner" style="animation-delay:${i * 0.1}s">
           <div class="rw-rank">${i + 1}</div>
+          ${avatarHtml}
           <span class="rw-name">${escapeHtml(w.name)}</span>
         </div>`;
       });
