@@ -240,7 +240,7 @@
       const authUrl = 'https://www.facebook.com/v21.0/dialog/oauth?' +
         'client_id=' + FB_APP_ID +
         '&redirect_uri=' + redirectUri +
-        '&scope=pages_show_list,pages_read_engagement,pages_read_user_content' +
+        '&scope=pages_show_list,pages_read_engagement,pages_read_user_content,instagram_business_basic,instagram_business_manage_comments' +
         '&response_type=token';
       window.location.href = authUrl;
     });
@@ -376,14 +376,41 @@
     $('#accessToken').value = pages[0].access_token;
     showToast('已取得粉專 Page Token，可直接抓取留言！', 'success');
 
+    fetchIgAccountId(pages[0].id, pages[0].access_token);
+
     select.addEventListener('change', function () {
       $('#accessToken').value = this.value;
+      const pageId = this.options[this.selectedIndex].dataset.pageId;
       const existingPostPicker = $('#fbPostPicker');
       if (existingPostPicker) existingPostPicker.remove();
+      fetchIgAccountId(pageId, this.value);
       showToast('已切換至「' + this.options[this.selectedIndex].text + '」的 Token。', 'info');
     });
 
-    $('#btnPickPost').addEventListener('click', loadPagePosts);
+    $('#btnPickPost').addEventListener('click', function () {
+      if (state.platform === 'instagram') {
+        loadIgPosts();
+      } else {
+        loadPagePosts();
+      }
+    });
+  }
+
+  async function fetchIgAccountId(pageId, token) {
+    try {
+      const resp = await fetch('https://graph.facebook.com/v21.0/' + pageId + '?fields=instagram_business_account&access_token=' + token);
+      const data = await resp.json();
+      if (data.instagram_business_account) {
+        state.igAccountId = data.instagram_business_account.id;
+        console.log('[IG] Connected IG account:', state.igAccountId);
+      } else {
+        state.igAccountId = null;
+        console.log('[IG] No IG business account connected to this page');
+      }
+    } catch (e) {
+      state.igAccountId = null;
+      console.error('[IG] Failed to get IG account:', e);
+    }
   }
 
   async function loadPagePosts() {
@@ -468,7 +495,103 @@
         const postId = item.dataset.postId;
         $('#postUrl').value = item.dataset.permalink || postId;
         state._selectedPostId = postId;
+        state._selectedPostIsIg = false;
         showToast('已選擇貼文，可直接點「抓留言」或「抓心情」。', 'success');
+      });
+    });
+  }
+
+  async function loadIgPosts() {
+    const select = $('#fbPageSelect');
+    if (!select) return;
+    const token = select.value;
+    const pageName = select.options[select.selectedIndex].text;
+    const btn = $('#btnPickPost');
+
+    if (!state.igAccountId) {
+      showToast('此粉專尚未綁定 Instagram 商業帳號，請先至 Meta Business Suite 連結。', 'warning');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 載入中...';
+
+    try {
+      const apiUrl = 'https://graph.facebook.com/v21.0/' + state.igAccountId +
+        '/media?fields=id,shortcode,caption,timestamp,permalink,media_url,media_type,thumbnail_url&limit=25&access_token=' + token;
+      const resp = await fetch(apiUrl);
+      const data = await resp.json();
+
+      if (data.error) throw new Error(data.error.message || '載入 IG 貼文失敗');
+      if (!data.data || data.data.length === 0) {
+        showToast('此 IG 帳號目前沒有貼文。', 'info');
+        return;
+      }
+
+      showIgPostPicker(data.data, pageName);
+    } catch (err) {
+      showToast('載入 IG 貼文失敗：' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' +
+        ' 選擇貼文';
+    }
+  }
+
+  function showIgPostPicker(posts, pageName) {
+    const existing = $('#fbPostPicker');
+    if (existing) existing.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'fbPostPicker';
+    wrapper.className = 'fb-post-picker';
+
+    const formatDate = function (iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    };
+
+    const truncate = function (text, max) {
+      if (!text) return '（無文字內容）';
+      return text.length > max ? text.substring(0, max) + '…' : text;
+    };
+
+    wrapper.innerHTML = '<label>「' + escapeHtml(pageName) + '」的 IG 近期貼文</label>' +
+      '<div class="post-list">' +
+      posts.map(function (p) {
+        const thumb = p.media_type === 'VIDEO' ? (p.thumbnail_url || '') : (p.media_url || '');
+        const typeLabel = p.media_type === 'VIDEO' ? ' 🎬' : (p.media_type === 'CAROUSEL_ALBUM' ? ' 📸' : '');
+        return '<div class="post-item" data-post-id="' + p.id + '"' +
+          (p.permalink ? ' data-permalink="' + escapeHtml(p.permalink) + '"' : '') +
+          (p.shortcode ? ' data-shortcode="' + escapeHtml(p.shortcode) + '"' : '') + '>' +
+          (thumb ? '<img class="post-thumb" src="' + escapeHtml(thumb) + '" alt="">' : '') +
+          '<div class="post-info">' +
+          '<div class="post-text">' + escapeHtml(truncate(p.caption, 80)) + typeLabel + '</div>' +
+          '<div class="post-date">' + formatDate(p.timestamp) + '</div>' +
+          '</div></div>';
+      }).join('') +
+      '</div>';
+
+    const picker = $('#fbPagePicker');
+    if (picker) {
+      picker.after(wrapper);
+    } else {
+      const tokenGroup = $('#accessToken').closest('.form-group');
+      tokenGroup.appendChild(wrapper);
+    }
+
+    wrapper.querySelectorAll('.post-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        wrapper.querySelectorAll('.post-item').forEach(function (el) { el.classList.remove('selected'); });
+        item.classList.add('selected');
+        const postId = item.dataset.postId;
+        $('#postUrl').value = item.dataset.permalink || postId;
+        state._selectedPostId = postId;
+        state._selectedPostIsIg = true;
+        showToast('已選擇 IG 貼文，可直接點「抓留言」。', 'success');
       });
     });
   }
@@ -496,11 +619,16 @@
       : '請貼上 Instagram 貼文網址';
     $('#urlHint').textContent = isFB
       ? '支援格式：https://www.facebook.com/...'
-      : '支援格式：https://www.instagram.com/p/...';
+      : '支援格式：https://www.instagram.com/p/... 或 /reel/...';
 
     $$('[data-fb-only]').forEach((el) => {
       el.style.display = isFB ? '' : 'none';
     });
+
+    state._selectedPostId = null;
+    state._selectedPostIsIg = false;
+    const existingPostPicker = $('#fbPostPicker');
+    if (existingPostPicker) existingPostPicker.remove();
   }
 
   // ---- Mode Tabs ----
@@ -638,52 +766,108 @@
     btn.innerHTML = '<span class="spinner"></span> 抓取中...';
 
     try {
-      const postId = await resolvePostId(postIdRaw, token);
-      if (!postId) {
-        showToast('無法解析貼文 ID', 'error');
-        return;
-      }
-      const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from{id,name,picture},message,message_tags,created_time,is_hidden,attachment&limit=500&access_token=${token}`;
-      let allComments = [];
-      let nextUrl = apiUrl;
+      const isIg = state.platform === 'instagram' || state._selectedPostIsIg;
 
-      while (nextUrl) {
-        const resp = await fetch(nextUrl);
-        const data = await resp.json();
+      if (isIg) {
+        let igMediaId = state._selectedPostId || null;
 
-        if (data.error) {
-          throw new Error(data.error.message || '抓取失敗');
+        if (!igMediaId && postIdRaw) {
+          const shortcode = typeof postIdRaw === 'string' ? postIdRaw : null;
+          if (shortcode && state.igAccountId) {
+            igMediaId = await resolveIgShortcode(shortcode, token);
+          }
         }
 
-        if (data.data) {
-          allComments = allComments.concat(data.data);
+        if (!igMediaId) {
+          showToast('無法取得 IG 貼文 ID，請使用「選擇貼文」功能。', 'error');
+          return;
         }
 
-        nextUrl = data.paging && data.paging.next ? data.paging.next : null;
+        const apiUrl = `https://graph.facebook.com/v21.0/${igMediaId}/comments?fields=id,text,username,timestamp&limit=500&access_token=${token}`;
+        let allComments = [];
+        let nextUrl = apiUrl;
+
+        while (nextUrl) {
+          const resp = await fetch(nextUrl);
+          const data = await resp.json();
+
+          if (data.error) {
+            throw new Error(data.error.message || '抓取 IG 留言失敗');
+          }
+
+          if (data.data) {
+            allComments = allComments.concat(data.data);
+          }
+
+          nextUrl = data.paging && data.paging.next ? data.paging.next : null;
+        }
+
+        state.participants = allComments.map((c) => {
+          return {
+            id: c.id || Math.random().toString(36).slice(2),
+            name: c.username || '匿名用戶',
+            picture: '',
+            comment: c.text || '',
+            commentImage: '',
+            tagCount: c.text ? (c.text.match(/@/g) || []).length : 0,
+            time: c.timestamp || '',
+            hidden: false,
+            source: 'ig_comment',
+          };
+        });
+
+        applyFilters();
+        renderParticipants();
+        showToast(`成功抓取 ${allComments.length} 筆 IG 留言！`, 'success');
+
+      } else {
+        const postId = await resolvePostId(postIdRaw, token);
+        if (!postId) {
+          showToast('無法解析貼文 ID', 'error');
+          return;
+        }
+        const apiUrl = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,from{id,name,picture},message,message_tags,created_time,is_hidden,attachment&limit=500&access_token=${token}`;
+        let allComments = [];
+        let nextUrl = apiUrl;
+
+        while (nextUrl) {
+          const resp = await fetch(nextUrl);
+          const data = await resp.json();
+
+          if (data.error) {
+            throw new Error(data.error.message || '抓取失敗');
+          }
+
+          if (data.data) {
+            allComments = allComments.concat(data.data);
+          }
+
+          nextUrl = data.paging && data.paging.next ? data.paging.next : null;
+        }
+
+        state.participants = allComments.map((c) => {
+          const uid = c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2));
+          const picData = c.from && c.from.picture && c.from.picture.data;
+          const attachImg = c.attachment && c.attachment.media && c.attachment.media.image;
+          return {
+            id: uid,
+            name: c.from && c.from.name ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
+            picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small' : ''),
+            comment: c.message || '',
+            commentImage: attachImg ? attachImg.src : '',
+            tagCount: c.message_tags
+              ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
+              : (c.message ? (c.message.match(/@/g) || []).length : 0),
+            time: c.created_time || '',
+            hidden: c.is_hidden || false,
+            source: 'comment',
+          };
+        });
+
+        applyFilters();
+        renderParticipants();
+        showToast(`成功抓取 ${allComments.length} 筆留言！`, 'success');
       }
-
-      state.participants = allComments.map((c) => {
-        const uid = c.from ? c.from.id : (c.id || Math.random().toString(36).slice(2));
-        const picData = c.from && c.from.picture && c.from.picture.data;
-        const attachImg = c.attachment && c.attachment.media && c.attachment.media.image;
-        return {
-          id: uid,
-          name: c.from && c.from.name ? c.from.name : '留言者 #' + (c.id ? c.id.split('_').pop().slice(-6) : '?'),
-          picture: picData ? picData.url : (c.from ? 'https://graph.facebook.com/' + uid + '/picture?type=small' : ''),
-          comment: c.message || '',
-          commentImage: attachImg ? attachImg.src : '',
-          tagCount: c.message_tags
-            ? c.message_tags.filter(function(t) { return !t.name || !t.name.startsWith('#'); }).length
-            : (c.message ? (c.message.match(/@/g) || []).length : 0),
-          time: c.created_time || '',
-          hidden: c.is_hidden || false,
-          source: 'comment',
-        };
-      });
-
-      applyFilters();
-      renderParticipants();
-      showToast(`成功抓取 ${allComments.length} 筆留言！`, 'success');
     } catch (err) {
       showToast(`抓取失敗：${err.message}`, 'error');
     } finally {
@@ -837,6 +1021,28 @@
       if (data.error) throw new Error(data.error.message || '無法解析 pfbid 網址');
       if (data.id) return data.id;
       throw new Error('無法從此網址取得貼文 ID，請改用「選擇粉專貼文」功能。');
+    }
+    return null;
+  }
+
+  async function resolveIgShortcode(shortcode, token) {
+    if (!state.igAccountId) return null;
+    try {
+      const apiUrl = 'https://graph.facebook.com/v21.0/' + state.igAccountId +
+        '/media?fields=id,shortcode&limit=50&access_token=' + token;
+      let nextUrl = apiUrl;
+      while (nextUrl) {
+        const resp = await fetch(nextUrl);
+        const data = await resp.json();
+        if (data.error) break;
+        if (data.data) {
+          const found = data.data.find(function (m) { return m.shortcode === shortcode; });
+          if (found) return found.id;
+        }
+        nextUrl = data.paging && data.paging.next ? data.paging.next : null;
+      }
+    } catch (e) {
+      console.error('[IG] Failed to resolve shortcode:', e);
     }
     return null;
   }
